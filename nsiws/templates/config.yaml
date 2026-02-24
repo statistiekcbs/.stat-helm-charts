@@ -1,0 +1,237 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "nsiws.fullname" . }}-config
+  labels:
+    {{- include "nsiws.labels" . | nindent 4 }}
+data:
+  appSettings.json: |
+    {{- set .Values.application.appSettings "auth" .Values.application.openIdMiddelware | toPrettyJson | nindent 4 }}
+  kerstelSettings.json: |
+    {
+      "Kestrel": {
+        "Limits": {
+            "MaxRequestBodySize": {{ .Values.application.maxReceivedMessageSize | int64 }}
+        }
+      }
+    }
+  app.config: |
+    <?xml version="1.0"?>
+    <configuration>
+      <!-- Note for logging configuration please look at log4net.config-->
+      <configSections>
+        {{- if .Values.application.corsMiddleware.enabled }}
+        <section name="corsSettings" type="Estat.Sri.Ws.CorsModule.CorsConfigSection, Estat.Sri.Ws.CorsModule"/>
+        {{- end }}
+        {{- if .Values.application.authenticationMiddleware.enabled }}
+        <sectionGroup name="estat.nsi.ws.config">
+          <section name="auth" type="Estat.Nsi.AuthModule.AuthConfigSection, Estat.Nsi.AuthModule"/>
+        </sectionGroup>
+        {{- end }}
+        <sectionGroup name="applicationSettings" type="System.Configuration.ApplicationSettingsGroup, System, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
+          <section name="Estat.Sri.Ws.Header.Default.Constants.HeaderSettings" type="System.Configuration.ClientSettingsSection, System, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" requirePermission="false"/>
+        </sectionGroup>
+        <sectionGroup name="estat.sri">
+          <section name="mapping.store" type="Estat.Sri.MappingStoreRetrieval.Config.MappingStoreConfigSection, Estat.Sri.Utils"/>
+          <section name="module" type="Estat.Sdmxsource.Extension.Config.ModuleConfigSection, Estat.SdmxSource.Extension"/>
+        </sectionGroup>
+        <!--  <section name="oracle.manageddataaccess.client" type="OracleInternal.Common.ODPMSectionHandler, Oracle.ManagedDataAccess, Version=4.122.1.0, Culture=neutral, PublicKeyToken=89b483f429c47342" /> -->
+        <section name="FormatMapping" type="Estat.Sri.Ws.Controllers.Model.FormatMapping, Estat.Sri.Ws.Controllers"/>
+      </configSections>
+      <connectionStrings configSource="connections.config"/>
+      <applicationSettings>
+        <!-- Default Header configuration -->
+        <!-- Specify 'SettingsHeaderRetriever' to enable (default) -->
+        <Estat.Sri.Ws.Header.Default.Constants.HeaderSettings>
+          <!-- Mandatory values (test and senderid) -->
+          {{- range $i, $val := .Values.application.constantHeaders }}
+          <setting name={{ $val.name | quote }} serializeAs={{ $val.type | quote }}>
+            <value>{{ $val.value }}</value>
+          </setting>
+          {{- end }}
+        </Estat.Sri.Ws.Header.Default.Constants.HeaderSettings>
+      </applicationSettings>
+      <appSettings>
+        <!-- Default header retriever. Should match the class name of the IHeaderRetrievalManager implementation. The DLL is expected to be found in the Plugins folder-->
+        <add key="defaultHeaderRetriever" value="SettingsHeaderRetriever"/>
+        <!-- The dataflow log file separator -->
+        <add key="log.df.file.separator" value=";"/>
+        <!-- The folder that contains the plugins.-->
+        <!-- If it is not absolute then the path is relative to the bin path. -->
+        <add key="pluginFolder" value="Plugins"/>
+        <add key="authXmlLocation" value="App_data/auth.xml" />
+        
+        <!-- Obsolete -->
+        <add key="storeIdFromUrl" value="^/login/token$"/>
+        <!--<add key="path" value="c:\instantclient11_xcopy_64bit"/>-->
+        <!--<add key="bin32" value="win32"/>-->
+        <!--<add key="bin64" value="x64"/>-->
+        <!-- The following setting is obsolete. Please use ddbSettings below-->
+        <!--<add key="defaultDDBOracleProvider" value="Oracle.DataAccess.Client"/>-->
+        <!-- Registry Interface SubmitStructure enable/disable. 
+            WARNING ENABLING THIS ALLOWS ANYONE TO WRITE STRUCTURAL METADATA TO THE MAPPING STORE DATABASE -->
+        <!-- Requires execute procedure and  -->
+        <add key="enableSubmitStructure" value={{ .Values.application.enableSubmitStructure | quote}}/>
+        <!-- Allow including local data as annotations -->
+        <add key="AllowLocalDataAsAnnotations" value={{ .Values.application.allowLocalDataAsAnnotations | quote}}/>
+        <!-- Change the size of message that can be received -->
+        <add key="MaxReceivedMessageSize" value={{ .Values.application.maxReceivedMessageSize | int64 | quote}} />
+        <!-- Uncomment and change the location to use an external config file -->
+        <add key="configLocation" value="./config/app.config"/> 
+        <!-- 12.1 ISTAT ENHANCEMENT -->
+        <add key="datastructure.final.attributes.referenceNonFinal" value={{ .Values.application.allowDsdReferenceNonFinal | quote}}/>
+        <add key="dbConnectionBuilderDll" value="Estat.Sri.Mapping.MappingStore"/>
+        <!-- Uncomment the following lines to enable Browser side caching-->
+        <!-- The Cache-Control: max age value in seconds for data requests -->
+        <!-- <add key="data.cache-control.max-age" value="3600"/> -->
+        <!-- The Cache-Control: max age value in seconds for structure requests -->
+        <!-- <add key="structure.cache-control.max-age" value="86400"/> -->
+
+        <!-- Uncomment the following lines to enable Server side caching
+         Please note this setting cannot be enabled if the Browser side caching above is enabled -->
+        <!-- The output caching, OutputCache-Control: MaxAge value in seconds -->
+        <!--<add key="outputcache.max-age" value="3600"/>-->
+
+        <!-- Set to true to enable authentication middleware -->
+        <add key="estat.nsi.ws.config.auth" value={{ .Values.application.authenticationMiddleware.enabled | quote}}/>
+        <!-- Set to true to enable cors middleware -->
+        <add key="corsSettings" value={{ .Values.application.corsMiddleware.enabled | quote}}/>
+        <!-- Set to true to enable policy  middleware -->
+        <add key="estat.sri.ws.policymodule" value={{ .Values.application.policyMiddleware.enabled | quote}}/>
+        <!-- A comma separated string that determines the order for the middleware implementations -->
+        <add key="middlewareImplementation" value={{ join "," .Values.application.middelwareOrder | quote }}/>
+        <add key="cacheConnectionStringSettings" value="true"/>
+      </appSettings>
+      {{- if .Values.application.authenticationMiddleware.enabled -}}
+      <estat.nsi.ws.config>
+        <!-- authentication configuration-->
+        <auth anonymousUser="" realm="nsiws">
+          <userCredentialsImplementation type="UserCredentialsHttpBasic"/>
+          <!-- The AUTH DB provider. It looks for a connection string with name equal to "authdb"-->
+          <authenticationImplementation type="EstatSriSecurityAuthenticationProvider"/>
+          <!-- Legacy options that use the Auth Schema and Test Auth config -->
+          <!--
+          <authenticationImplementation type="DbAuthenticationProvider"/>
+          <authorizationImplementation type="DbAuthorizationProvider"/>
+          <dbAuth>
+            <authentication sql="select password from users where userid=${user}" connectionStringName="authdb"/>
+            <authorization sql="select d.id as ${id}, d.ver as ${version}, d.agency as ${agencyId} from users u inner join user_df ud on u.pk=ud.user_pk inner join dfs d on d.pk = ud.df_pk where u.userid=${user}"/>
+          </dbAuth>
+          -->
+        </auth>
+      </estat.nsi.ws.config>
+      {{- end }}
+      {{- if .Values.application.corsMiddleware.enabled }}
+      <!-- Uncomment to enable CORS-->
+      <corsSettings>
+        <corsCollection>
+          <!-- Allow CORS to any caller, to restrict change * to allowed domain, if multiple allowed domains can access NSI webservice then use as many add nodes as needed -->
+          {{- range $i, $val := .Values.application.corsMiddleware.rules }}
+          <add domain={{ $val.domain | quote }} allowed-methods={{ $val.allowedMethods | quote }} allowed-headers={{ join "," $val.allowedHeaders | quote }} allow-credentials={{ $val.allowCredentials | quote }} exposed-headers={{ join "," $val.exposedHeaders | quote }}/>
+          {{- end }}
+        </corsCollection>
+      </corsSettings>
+      {{- end }}
+      <estat.sri>
+        <!-- value to determine if the application should insert new item scheme values -->
+        <mapping.store InsertNewItems={{ .Values.application.insertNewStructItems | quote }} EnforceEmbargoTimeType={{ .Values.application.enforceEmbargoTimeType | quote }} RetrieveAnnotationsInBatchFetch={{ .Values.application.retrieveAnnotationsInBatchFetch | quote }}>
+          <!-- General Database settings apply to both Mapping Store (MSDB) and dissemination databases (DDB) -->
+          <!-- Options are: -->
+          <!-- provider : The .NET DB Provider name. Mandatory and unique -->
+          <!-- subStringCmd : The substring command. Defaults to : SUBSTR -->
+          <!-- subStringNeedsLength : Whether the substring command requires to specify the length. Defaults to : false -->
+          <!-- parameterMarkerFormat : The named parameter format. Mandatory. -->
+          <!-- castToStringFormat : The format text that should be used to cast to string. Defaults to: {0} -->
+          <!-- dateCast : The date cast command. Defaults to "" -->
+          <!-- subQueryOrderByAllowed : Whether a sub query can have an order by. Defaults to true. -->
+          <DatabaseSettings>
+            <clear/>
+            <add provider="Microsoft.Data.SqlClient" subStringCmd="SUBSTRING" subStringNeedsLength="true" parameterMarkerFormat="@{0}" castToStringFormat="CAST({0} AS VARCHAR)" subQueryOrderByAllowed="false" CommandTimeout="300" reservedKeywordToStringFormat="[{0}]" />
+            <add provider="Oracle.ManagedDataAccess.Client" parameterMarkerFormat=":{0}" dateCast="DATE" reservedKeywordToStringFormat="&quot;{0}&quot;" />
+            <!-- Please note that System.Data.OracleClient is obsolete and no longer maintained by Microsoft. -->
+            <add provider="System.Data.OracleClient" parameterMarkerFormat=":{0}" dateCast="DATE" reservedKeywordToStringFormat="&quot;{0}&quot;"/>
+            <add provider="MySqlConnector" parameterMarkerFormat="@{0}" dateCast="TIMESTAMP" reservedKeywordToStringFormat="`{0}`"/>
+            <!-- DDB only providers -->
+            <add provider="Org.Estat.PcAxis.PcAxisProvider" parameterMarkerFormat="@{0}"/>
+            <!-- ODBC options depend on the ODBC driver used. -->
+            <add provider="System.Data.Odbc" parameterMarkerFormat="?" subStringCmd="SUBSTRING" subStringNeedsLength="true" castToStringFormat="CAST({0} AS VARCHAR)" subQueryOrderByAllowed="false"/>
+          </DatabaseSettings>
+          <!--  Database settings  -->
+          <!-- Options are: -->
+          <!-- name : The DDB provider name. Mandatory and unique. This is used for mapping a DDB type to a driver -->
+          <!-- provider : The .NET DB Provider name. -->
+          <ddbSettings>
+            <clear/>
+            <add name="SqlServer" provider="Microsoft.Data.SqlClient" factoryClass="" dllName=""/>
+            <add name="Oracle" provider="Oracle.ManagedDataAccess.Client" factoryClass="Oracle.ManagedDataAccess.Client.OracleClientFactory" dllName="Oracle.ManagedDataAccess"/>
+            <add name="PCAxis" provider="org.estat.PcAxis.PcAxisProvider" factoryClass="Org.Estat.PcAxis.PcAxisProvider" dllName="PcAxis"/>
+            <add name="MySQL" provider="MySqlConnector" factoryClass="MySqlConnector.MySqlConnectorFactory" dllName="MySqlConnector" />
+            <add name="Odbc" provider="System.Data.Odbc" factoryClass="System.Data.Odbc.OdbcFactory" dllName="System.Data.Odbc"/>
+          </ddbSettings>
+          <Dataflow ignoreProductionFlagForData={{ .Values.application.ignoreProductionFlagForData | quote }} ignoreProductionFlagForStructure={{ .Values.application.ignoreProductionFlagForStructure | quote }} />
+        </mapping.store>
+        <module>
+          <retrievers>
+            <!-- First provider to be tried -->
+            <add name="MappingStoreRetrieversFactory"/>
+            <!-- Second provider to be tried. It will tried only if first cannot serve the result.-->
+            <!-- <add name="SomeFactoryId"/>-->
+            <!-- Third -->
+            <!-- etc. -->
+          </retrievers>
+        </module>
+      </estat.sri>
+      <FormatMapping>
+        <Mappings>
+          <Mapping Format="genericdata" AcceptHeader="application/vnd.sdmx.genericdata+xml; version=2.1"/>
+          <Mapping Format="jsondata" AcceptHeader="application/vnd.sdmx.data+json;version=1.0"/>
+          <Mapping Format="structure" AcceptHeader="application/vnd.sdmx.structure+xml;version=2.1"/>
+          <Mapping Format="structurespecificdata" AcceptHeader="application/vnd.sdmx.structurespecificdata+xml"/>
+          <Mapping Format="csv" AcceptHeader="application/vnd.sdmx.data+csv"/>
+          <Mapping Format="csvfile" AcceptHeader="application/vnd.sdmx.data+csv;file=true"/>
+          <Mapping Format="csvfilewithlabels" AcceptHeader="application/vnd.sdmx.data+csv;version=2;file=true;labels=name"/>
+          <Mapping Format="xml-data-3.0.0" AcceptHeader="application/vnd.sdmx.data+xml;version=3.0.0"/>
+          <Mapping Format="xml-structure-3.0.0" AcceptHeader="application/vnd.sdmx.structure+xml;version=3.0.0"/>
+          <Mapping Format="sdmx-3.0" AcceptHeader="application/vnd.sdmx.structure+xml;version=3.0.0"/>
+          <Mapping Format="json-data-2.0.0" AcceptHeader="application/vnd.sdmx.data+json;version=2.0.0"/>
+          <Mapping Format="json-structure-2.0.0" AcceptHeader="application/vnd.sdmx.structure+json;version=2.0.0"/>
+          <Mapping Format="csv-data-2.0.0" AcceptHeader="application/vnd.sdmx.data+csv;version=2.0.0"/>
+        </Mappings>
+      </FormatMapping>
+    </configuration>
+    
+  log4net.config: |
+    <log4net>
+      <appender name="Console" type="log4net.Appender.ConsoleAppender">
+          <layout type="log4net.Layout.PatternLayout">
+              <conversionPattern value="%level: %logger[%thread] %message%newline" />
+          </layout>
+      </appender>
+
+      <logger name="Estat.Nsi" additivity="false">
+        <level value="INFO"/>
+        <!-- Uncomment to enable -->
+        <appender-ref ref="Console" />
+      </logger>
+
+      <logger name="Estat.Sri" additivity="false">
+        <level value="INFO"/>
+        <appender-ref ref="Console" />
+      </logger>
+
+      <logger name="Estat.Sri.MappingStoreRetrieval" additivity="false">
+        <level value="WARN"/>
+        <appender-ref ref="Console" />
+      </logger>
+
+      <logger name="org.estat.sri.sqlquerylogger" additivity="false">
+        <level value="WARN"/>
+        <appender-ref ref="Console" />
+      </logger>
+
+      <root>
+        <!-- Options are "ALL", "DEBUG", "INFO", "WARN", "ERROR", "FATAL" and "OFF". -->
+        <level value="INFO"/>
+        <appender-ref ref="Console"/>
+      </root>
+    </log4net>

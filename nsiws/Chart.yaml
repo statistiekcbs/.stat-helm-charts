@@ -1,0 +1,17 @@
+apiVersion: v2
+name: nsiws
+version: 9.0.0
+description: |
+  A Helm chart for the .Stat NSI web service.
+
+  This chart includes the ability to deploy the NSIWS application, the DBup
+  applications for data and structure databases and supports generating External
+  Secrets and monitoring probes for the application itself and the databases.
+type: application
+home: https://github.com/statistiekcbs/.stat-helm-charts
+sources:
+  - https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-sdmxri-nsi-ws/
+  - https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-data-access
+icon: https://raw.githubusercontent.com/statistiekcbs/.stat-helm-charts/refs/heads/main/nsiws/icon.png
+appVersion: "10.9.0"
+# OECD release: jackfruit

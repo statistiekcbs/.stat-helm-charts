@@ -1,0 +1,1049 @@
+# Default values for nsiws.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+revisionHistoryLimit: 10
+
+image:
+  repository: siscc/sdmxri-nsi-maapi
+  pullPolicy: IfNotPresent
+  # -- Overrides the image tag whose default is the chart appVersion.
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext:
+  {}
+  # fsGroup: 2000
+
+databases:
+  # Structure DB conncections
+  structure:
+    # -- Server URL
+    serverHostname: ""
+    serverPort: 1433
+    # -- Database name
+    dbName: ""
+    userSecrets:
+      admin:
+        # -- Secret name for username and password
+        name: ""
+        # -- Set to true to use an external
+        # When using an external secret , the secret name is generated
+        isExternal: false
+        annotations: {}
+        username:
+          # -- The username secret key
+          key: ""
+          # -- When using an external secret, remoteRef.key is required
+          # If remoteRef.property is not set, username.key is used
+          remoteRef:
+            key: ""
+        password:
+          # -- The password secret key
+          key: ""
+          # -- When using an external secret, remoteRef.key is required
+          # If remoteRef.property is not set, password.key is used
+          remoteRef:
+            key: ""
+        # -- When using an external secret, secretStoreRef.name is required
+        secretStoreRef:
+          name: ""
+          # kind: ClusterSecretStore
+        # When using an external secret, if target.name is not set, the generated
+        # seret name will be used
+        # target:
+        #   creationPolicy: Owner
+        #   deletionPolicy: Retain
+        #   name: ""
+        # refreshInterval: 24h
+
+        # -- Additional parameters for admin connection string
+        additionalParams: []
+      writer:
+        # -- Secret name for username and password
+        name: ""
+        # -- Set to true to use an external
+        # When using an external secret , the secret name is generated
+        isExternal: false
+        annotations: {}
+        username:
+          # -- The username secret key
+          key: ""
+          # -- When using an external secret, remoteRef.key is required
+          # If remoteRef.property is not set, username.key is used
+          remoteRef:
+            key: ""
+        password:
+          # -- The password secret key
+          key: ""
+          # -- When using an external secret, remoteRef.key is required
+          # If remoteRef.property is not set, password.key is used
+          remoteRef:
+            key: ""
+        # -- When using an external secret, secretStoreRef.name is required
+        secretStoreRef:
+          name: ""
+          # kind: ClusterSecretStore
+        # When using an external secret, if target.name is not set, the generated
+        # seret name will be used
+        # target:
+        #   creationPolicy: Owner
+        #   deletionPolicy: Retain
+        #   name: ""
+        # refreshInterval: 24h
+
+        # -- Additional parameters for writer connection string
+        additionalParams: []
+      reader: {}
+
+    # -- Additional parameters for all connection strings
+    additionalParams: []
+
+    # Configure probe to monitor DB server availability
+    probe:
+      enabled: false
+      selectorLabel: ""
+      extraLabels: {}
+      module: tcp_connect
+      interval: 30s
+      proberUrl: ""
+      proberPath: /probe
+      probeLabel: ""
+      relabelings: []
+        # - sourceLabels:
+        #   targetLabel:
+
+  # Data DB conncection
+  data:
+    # -- Database type
+    type: SqlServer
+    # -- Server URL
+    serverHostname: ""
+    serverPort: 1433
+    # -- Database name
+    dbName: ""
+
+    userSecrets:
+      admin:
+        # -- Secret name for username and password
+        name: ""
+        # -- Set to true to use an external
+        # When using an external secret , the secret name is generated
+        isExternal: false
+        annotations: {}
+        username:
+          # -- The username secret key
+          key: ""
+          # -- When using an external secret, remoteRef.key is required
+          # If remoteRef.property is not set, username.key is used
+          remoteRef:
+            key: ""
+        password:
+          # -- The password secret key
+          key: ""
+          # -- When using an external secret, remoteRef.key is required
+          # If remoteRef.property is not set, password.key is used
+          remoteRef:
+            key: ""
+        # -- When using an external secret, secretStoreRef.name is required
+        secretStoreRef:
+          name: ""
+          # kind: ClusterSecretStore
+        # When using an external secret, if target.name is not set, the generated
+        # seret name will be used
+        # target:
+        #   creationPolicy: Owner
+        #   deletionPolicy: Retain
+        #   name: ""
+        # refreshInterval: 24h
+
+        # -- Additional parameters for admin connection string
+        additionalParams: []
+      writer:
+        # -- Secret name for username and password
+        name: ""
+        # -- Set to true to use an external
+        # When using an external secret , the secret name is generated
+        isExternal: false
+        annotations: {}
+        username:
+          # -- The username secret key
+          key: ""
+          # -- When using an external secret, remoteRef.key is required
+          # If remoteRef.property is not set, username.key is used
+          remoteRef:
+            key: ""
+        password:
+          # -- The password secret key
+          key: ""
+          # -- When using an external secret, remoteRef.key is required
+          # If remoteRef.property is not set, password.key is used
+          remoteRef:
+            key: ""
+        # -- When using an external secret, secretStoreRef.name is required
+        secretStoreRef:
+          name: ""
+          # kind: ClusterSecretStore
+        # When using an external secret, if target.name is not set, the generated
+        # seret name will be used
+        # target:
+        #   creationPolicy: Owner
+        #   deletionPolicy: Retain
+        #   name: ""
+        # refreshInterval: 24h
+
+        # -- Additional parameters for writer connection string
+        additionalParams: []
+      reader: {}
+
+    # -- Additional parameters for all connection strings
+    additionalParams: []
+
+    # Configure probe to monitor DB server availability
+    probe:
+      enabled: false
+      selectorLabel: ""
+      extraLabels: {}
+      module: tcp_connect
+      interval: 30s
+      proberUrl: ""
+      proberPath: /probe
+      probeLabel: ""
+      relabelings: []
+        # - sourceLabels: 
+        #   targetLabel:
+
+# -- Override the default start command of the container
+commandOverride: []
+
+application:
+  # -- Use the reader user to connect to the structures database, if false uses the
+  # writer user
+  readOnlyStructure: false
+  # -- Use the reader user to connect to the data database, if false uses the
+  # writer user
+  readOnlyData: false
+  # -- The configuration element is used to define various values of a default
+  # header that the application will use in case no other header is defined in
+  # the mapping assistant. The settings names correspond to the Header element
+  # as defined by SDMX standard. Only senderid and test are mandatory.
+  # https://gitlab.com/sis-cc/eurostat-sdmx-ri/nsiws.net.mirrored/-/blob/master/doc/CONFIGURATION.md
+  constantHeaders:
+    - name: test
+      type: String
+      value: "true"
+    - name: senderid
+      type: String
+      value: SOME_NSI
+  # -- Enable submit structure functionality.
+  # https://gitlab.com/sis-cc/eurostat-sdmx-ri/nsiws.net.mirrored/-/blob/master/doc/CONFIGURATION.md
+  enableSubmitStructure: true
+  # -- Allow the ?annotations=localdata parameter in SDMX REST data queries. When
+  # this is enabled and the query parameter annotations=localdata is used then
+  # together with the data, annotations containing the mapping to the local
+  # data and columns will be included.
+  # https://gitlab.com/sis-cc/eurostat-sdmx-ri/nsiws.net.mirrored/-/blob/master/doc/CONFIGURATION.md
+  allowLocalDataAsAnnotations: false
+  # -- Size of message that can be received
+  maxReceivedMessageSize: 10485760
+  # -- Allow DSD imports to reference non-final items
+  allowDsdReferenceNonFinal: false
+  # -- Options for the Mapping Store:
+  # InsertNewItems: value to determine if the application should insert new item scheme values
+  # EnforceEmbargoTimeType: indicates whether the EMBARGO_TIME attribute needs to be validated
+  # RetrieveAnnotationsInBatchFetch: indicates whether anntotations are fetched in batches.
+  # Defaults to false where annotations are fetched per artefact
+  # https://gitlab.com/sis-cc/eurostat-sdmx-ri/nsiws.net.mirrored/-/blob/master/doc/CONFIGURATION.md
+  insertNewStructItems: true
+  enforceEmbargoTimeType: true
+  retrieveAnnotationsInBatchFetch: false
+  # -- ??
+  ignoreProductionFlagForData: true
+  # -- ??
+  ignoreProductionFlagForStructure: true
+
+  authenticationMiddleware:
+    enabled: false
+
+  corsMiddleware:
+    # -- Enable CORS
+    # See https://gitlab.com/sis-cc/eurostat-sdmx-ri/nsiws.net.mirrored/-/blob/master/doc/CORSConfiguration.md
+    enabled: false
+    rules:
+      - # -- This matches the host or domain where the Javascript is hosted
+        domain: "*"
+        # -- The list of allowed HTTP methods
+        allowedMethods: "*"
+        # -- The list of request HTTP headers
+        allowedHeaders:
+          - Range
+          - Origin
+          - Authorization
+          - X-Level
+          - X-Range
+        # -- Controls whether to expose the response to frontend JavaScript code
+        # when credentials are used.
+        allowCredentials: true
+        # -- The server whitelist header that browsers are allowed to access
+        exposedHeaders:
+          - Location
+          - Content-Range
+
+  # See https://gitlab.com/sis-cc/eurostat-sdmx-ri/nsiws.net.mirrored/-/blob/master/doc/openid-middleware.md
+  # and https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-auth-management/-/blob/develop/README.md
+  openIdMiddelware:
+    # -- Is openid authentication enabled
+    enabled: false
+    # -- Is anonymous access allowed (request without JWT token)
+    allowAnonymous: false
+    # -- Authority url of token issuer
+    authority: ""
+    # -- Authorization url (used in swagger UI interface)
+    authorizationUrl: ""
+    # -- Client/application Id
+    clientId: ""
+    # -- Is HTTPS connection to OpenId authority server required
+    requireHttps: false
+    # -- Is iss (issuer) claim in JTW token should match configured authority
+    validateIssuer: false
+    # -- If set to TRUE outputs addition debug information in case of invalid token
+    showPii: false
+    # -- Expected `aud` claim during token validation, if not set equals to
+    # `clientId`
+    audience: clientId
+    # -- Token url (used in swagger UI interface), optional, if not defined will
+    # be constructed based on authorizationUrl
+    tokenUrl: ""
+    # -- Key/value mapping of a key used in the C# code to JWT token claim.
+    claimsMapping:
+      email: email
+      groups: groups
+    # -- Requested openId scopes (used as parameters for authorization url)
+    scopes:
+      - openid
+      - profile
+      - email
+
+  policyMiddleware:
+    enabled: false
+
+  # -- A list that determines the order for the middleware implementations
+  middelwareOrder:
+    - CorsMiddlewareBuilder
+    # - AuthMiddlewareBuilder
+    - OpenIdMiddlewareBuilder
+    - LoggingOptionsBuilder
+    - UserAuthorizationRulesMiddlerwareBuilder
+    - PolicyModuleMiddlewareBuilder
+
+  appSettings:
+    datastructure:
+      # -- Controls the behavior of the Web Service conserning Cross Sectional
+      # SDMX v2.0 support in SDMX v2.1 Structure and data formats. By default
+      # it is allowed. To disable it the datastructure.
+      # allowSdmx21CrossSectional must be set to false or the setting file must
+      # be removed.
+      # https://gitlab.com/sis-cc/eurostat-sdmx-ri/nsiws.net.mirrored/-/blob/master/doc/CONFIGURATION.md
+      allowSdmx21CrossSectional: "true"
+    categorisation:
+      # -- There is a feature to create a stub Category for any missing categories
+      # when it imports a SDMX v2.1 Categorisation or SDMX v2.0
+      # Dataflow/Metadataflow with CategoryReference. By default this feature
+      # is working and to disable it the value categorisation.
+      # createStubCategory must be set to false or the setting file must be
+      # removed.
+      # https://gitlab.com/sis-cc/eurostat-sdmx-ri/nsiws.net.mirrored/-/blob/master/doc/CONFIGURATION.md
+      createStubCategory: "false"
+    # -- Specifies if NSI WS should apply allowed content constraints at data
+    # retrieval. The default value for this docker image is true, which
+    # normally should not be changed.
+    # https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-sdmxri-nsi-ws/-/blob/develop/README.md
+    applyContentConstraintsOnDataQueries: true
+    # -- Specifies if NSI WS should also delete related mapping sets upon deletion
+    # of a dataflow. The default value for this docker image is true, which
+    # normally should not be changed.
+    # https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-sdmxri-nsi-ws/-/blob/develop/README.md
+    autoDeleteMappingSets: true
+    authorization:
+      # -- Determines if UserAuthorizationRulesMiddlerwareBuilder is activated for
+      # authorization. The default value for this docker image is true, which
+      # normally should not be changed.
+      # https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-sdmxri-nsi-ws/-/blob/develop/README.md
+      enabled: true
+      # -- authorization uses .Stat Suite's authorization rules. The default value
+      # for this docker image is dotstat, which normally should not be changed.
+      # https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-sdmxri-nsi-ws/-/blob/develop/README.md
+      method: dotstat.webapi
+      # -- The BASE URL to the .Stat Suite's Authorization service
+      baseUrl: ""
+      # -- The principal used at authorization should be taken from context
+      # object. The default value for this docker image is context, which
+      # normally should not be changed.
+      # https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-sdmxri-nsi-ws/-/blob/develop/README.md
+      PrincipalFrom: context
+    mappingStore:
+      Id:
+        # -- The unique identifier of the data space of the NSI WS instance (also
+        # used at authorization rules), e.g. "design".
+        # https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-sdmxri-nsi-ws/-/blob/develop/README.md
+        Default: design
+        # -- A parameter controlling whether store id (i.e. data space id) could
+        # be provided in GET Query parameter. The default value for this docker
+        # image is Never, which normally should not be changed.
+        # https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-sdmxri-nsi-ws/-/blob/develop/README.md
+        FromQueryParameter: Never
+    # -- Sets the default culture of the service using a two-letter culture code.
+    # https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-sdmxri-nsi-ws/-/blob/develop/README.md
+    defaultCultureInfo: en
+    # -- Specifies whether the response compression middleware of ASP.NET Core
+    # should be used to compress server responses.
+    # https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-sdmxri-nsi-ws/-/blob/develop/README.md
+    enableResponseCompression: "true"
+    # -- Specifies if NSI WS should output Hierarchical Codelists (HCL) parents in
+    # JSON message, based on annotation (HIER_CONTEXT). See more here and
+    # example DSD here. The default value for this docker image is true, which
+    # normally should not be changed.
+    # https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-sdmxri-nsi-ws/-/blob/develop/README.md
+    useHierarchicalCodelists: "true"
+    # -- Allows configuring specific characters as SDMX-CSV column & decimal
+    # separators per locale defined by the Accept-Language header of the
+    # request. The default value for this docker image is true.
+    # https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-sdmxri-nsi-ws/-/blob/develop/README.md
+    useCultureSpecificColumnAndDecimalSeparators: "true"
+    # -- It is possible the deal with SDMX-confidential or SDMX-embargoed data
+    # when the feature is enabled. The values property defines which attributes
+    # are handled by the service.
+    # https://gitlab.com/sis-cc/eurostat-sdmx-ri/nsiws.net.mirrored/-/blob/master/doc/CONFIGURATION.md
+    confidentialityStatusValues:
+      enabled: "true"
+      values: "N,C,E"
+    # -- Starting from SDMX RI v10, by default the SDMX REST v1 API follows the SDMX REST v2 API status codes.
+    # Specifically, the following status codes for SDMX REST v1 deviate from the standard:
+    #
+    #| Error          | SDMX REST v1 standard | SDMX REST v1 (NSIWS) | SDMX REST v2 (standard & NSIWS) |
+    #|----------------|-----------------------|----------------------|---------------------------------|
+    #| No results     | 404                   | 204                  | 204                             |
+    #| Semantic error | 403                   | 422                  | 422                             |
+    #
+    # https://gitlab.com/sis-cc/eurostat-sdmx-ri/nsiws.net.mirrored/-/blob/master/doc/CONFIGURATION.md
+    errorHandling:
+      sdmxrestv1:
+        noResultsUse404: "true"
+        semanticErrorUse403: "true"
+    # -- By default the entries under httpHeaders.varyHeader.varyBy in
+    # config/httpHeaders.json will be used in the response in a Vary header if
+    # they are present in the request. If the Vary header is already present,
+    # any additional values that are not already present in the Vary header
+    # will be appended. To disable this functionality simply remove or change
+    # the extension of the json file.
+    # https://gitlab.com/sis-cc/eurostat-sdmx-ri/nsiws.net.mirrored/-/blob/master/doc/CACHING.md
+    httpHeaders:
+      varyHeader:
+        varyBy:
+          - Accept
+          - Accept-Language
+          - Accept-Encoding
+          - Accept-Charset
+    structureUsage:
+      # -- When requesting data for SDMX v2.1 there is a configurabile option to use
+      # either the datastructure or the dataflow in the header of the response.
+      # https://gitlab.com/sis-cc/eurostat-sdmx-ri/nsiws.net.mirrored/-/blob/master/doc/CONFIGURATION.md
+      structureType: dataflow
+    datasetAction: Information
+    # Optionally it is possible to add google cloud logging.
+    # https://gitlab.com/sis-cc/eurostat-sdmx-ri/nsiws.net.mirrored/-/blob/master/doc/CONFIGURATION.md
+    googleLogging:
+      enabled: false
+      projectId: YOUR_GOOGLE_PROJECT_ID
+      logId: YOUR_LOG_ID
+      logLevel: Debug
+
+    # -- Automatically log to google cloud. Default = false
+    # https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-sdmxri-nsi-ws/-/blob/develop/README.md
+    AutoLog2Google: false
+    # -- One of (DEBUG,INFO,ERROR). Default = DEBUG
+    # https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-sdmxri-nsi-ws/-/blob/develop/README.md
+    GoogleLogLevel: DEBUG
+    # -- Google.Cloud logging projectId, required only if AutoLog2Google=true
+    # https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-sdmxri-nsi-ws/-/blob/develop/README.md
+    GoogleProjectId: true
+    # -- Google.Cloud logging logId. Default = DOTSTAT_BACKEND
+    # https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-sdmxri-nsi-ws/-/blob/develop/README.md
+    GoogleLogId: DOTSTAT_BACKEND
+    # -- If the service is executed outside of Google Cloud Platform it is
+    # required to set this variable with a path to a service account JSON
+    # file for an authentication, see more here:
+    # https://cloud.google.com/dotnet/docs/reference/Google.Cloud.Logging.Log4Net/latest/#authentication
+    # https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-sdmxri-nsi-ws/-/blob/develop/README.md
+    GOOGLE_APPLICATION_CREDENTIALS: ""
+
+    # -- Controls if access to PIT (point-in-time) release data allowed on this
+    # NSI WS instance (please note that corresponding user authorization
+    # rule(s) must be created also).
+    # https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-sdmxri-nsi-ws/-/blob/develop/README.md
+    enableReleaseManagement: false
+
+    # -- Maximum request body size
+    # https://gitlab.com/sis-cc/eurostat-sdmx-ri/nsiws.net.mirrored/-/blob/master/doc/CONFIGURATION.md
+    maxRequestBodySize: 52428800
+
+    # -- Exclude non-coded dimension from dynamic availability constraints
+    # generation (/rest/availableconstraint/*)
+    # https://gitlab.com/sis-cc/eurostat-sdmx-ri/nsiws.net.mirrored/-/blob/master/doc/CONFIGURATION.md
+    excludeNonCodedDimensionsDuringConstraintCalculation: false
+
+    # -- It is possible to set the max number observations to sort for paginated
+    # requests. In case the user's filter exceeds the maximum number of
+    # observations to be sorted for range requests (paginated), only the first
+    # page can be returned without any ordering. 0 = unlimited
+    # https://gitlab.com/sis-cc/eurostat-sdmx-ri/nsiws.net.mirrored/-/blob/master/doc/CONFIGURATION.md
+    maxNumberObservationsToSortForPaginatedRequests: 0
+
+    # Rate Limiting
+    clientRateLimiting:
+      enabled: false
+      enableEndpointRateLimiting: false
+      stackBlockedRequests: false
+      clientIdHeader: "X-ClientId"
+      httpStatusCode: 429
+      generalRules:
+        - endpoint: "*"
+          period: "1m"
+          limit: 10
+
+    clientRateLimitPolicies:
+      clientRules:
+        - clientId: "Client1"
+          rules:
+            endpoint: "*"
+            period: "1m"
+            limit: 1
+        - clientId: "Client2"
+          rules:
+            endpoint: "*"
+            period: "1m"
+            limit: 3
+
+    # Request limiting
+    requestLimit:
+      # -- To enable request limits, set the following value a value larger than 0
+      requestLimit: 0
+      # -- Should actual content constraints be considered when estimating the number of observations
+      considerActualContentConstraintsInLimit: true
+
+    # Response caching
+    responseCache:
+      maximumBodySize: 64000000
+      sizeLimit: 512000000
+      useCaseSensitivePaths: false
+      structures:
+        enabled: false
+        location: any
+        maxAge: 3600
+        varyByHeader: Accept, Accept-Language, Accept-Encoding, Accept-Charset
+        varyByQueryKeys:
+          - references
+          - detail
+      data:
+        enabled: false
+        location: any
+        maxAge: 3600
+        varyByHeader: X-Range, Accept, Accept-Language, Accept-Encoding, Accept-Charset
+        varyByQueryKeys:
+          - detail
+          - c
+          - updatedAfter
+          - firstNObservations
+          - lastNObservations
+          - dimensionAtObservation
+          - attributes
+          - measures
+          - includeHistory
+          - startPeriod
+          - endPeriod
+      availableconstraint:
+        enabled: false
+        location: any
+        maxAge: 3600
+        varyByHeader: Accept, Accept-Language, Accept-Encoding, Accept-Charset
+        varyByQueryKeys:
+          - flowRef
+          - key
+          - providerRef
+          - mode
+          - references
+          - startPeriod
+          - endPeriod
+          - updatedAfter
+
+# -- Additional environment variables
+env: []
+
+securityContext:
+  {}
+  # readOnlyRootFilesystem: true
+  # allowPrivilegeEscalation: false
+  # privileged: false
+  # capabilities:
+  #   drop:
+  #   - all
+  # runAsGroup: 1654
+  # runAsUser: 1654
+  # runAsNonRoot: true
+
+# We usually recommend not to specify default resources and to leave this as a conscious
+# choice for the user. This also increases chances charts run on environments with little
+# resources, such as Minikube. If you do want to specify resources, uncomment the following
+# lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+# -- Resource requests and limits
+resources:
+  {}
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+# -- Resource requests and limits for the main deployment init container
+initResources:
+  {}
+  # requests:
+  #   cpu: 100m
+  #   memory: 50Mi
+  # limits:
+  #   cpu: 500m
+  #   memory: 100Mi
+
+# -- Additional volumeMounts on the output Deployment definition.
+volumeMounts:
+  []
+  # - name: foo
+  #   mountPath: "/etc/foo"
+  #   readOnly: true
+
+dbInit:
+  structure:
+    # -- Enable structure database init job
+    enabled: false
+
+    # -- Roll deployment on job change
+    rollDeployment: false
+
+    podSecurityContext: {}
+
+    annotations:
+      {}
+      # argocd.argoproj.io/hook: PreSync
+      # argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+
+    image:
+      repository: siscc/dotstatsuite-dbup
+      pullPolicy: IfNotPresent
+      # -- Overrides the image tag whose default is the chart appVersion.
+      tag: "v31.0.0"
+
+    # -- The DBA scripts are not executed: it will not create logins / users, won't
+    # put the DB in restricted mode while running
+    executeDbaScripts: true
+    # -- Drops the database before creating it
+    dropDb: false
+    # -- Changes the passwords of existing loginName and ROloginName logins in
+    # database
+    alterPasswords: false
+    # -- Optional. When provided, uses the given value (name of the time zone)
+    # instead of trying to determine it in the related sql script(s). Should be
+    # used in cases when the stored procedure [MASTER].[dbo.xp_regread] cannot
+    # be executed.
+    timezone: ""
+    # -- The execution timeout in minutes
+    executionTimeout: 30
+
+    googleLogging:
+      {}
+      # Google.Cloud logging projectId
+      # projectId: ""
+      # Google.Cloud logging logId
+      # logId: DbUp
+
+    securityContext:
+      {}
+      # readOnlyRootFilesystem: true
+      # allowPrivilegeEscalation: false
+      # privileged: false
+      # capabilities:
+      #   drop:
+      #   - all
+      # runAsGroup: 1654
+      # runAsUser: 1654
+      # runAsNonRoot: true
+
+    resources:
+      {}
+      # requests:
+      #   cpu: 100m
+      #   memory: 50Mi
+      # limits:
+      #   cpu: 500m
+      #   memory: 100Mi
+
+    volumeMounts: []
+
+    maapiContainer:
+      image:
+        repository: siscc/sdmxri-nsi-maapi
+        pullPolicy: IfNotPresent
+        # -- Overrides the image tag whose default is the chart appVersion.
+        tag: ""
+
+      command:
+        # -- Override the default start comman of the maapi initContainer
+        commandOverride: []
+        # -- Specifies de DB connection alias to be use bij the maapi tool. Usually
+        # should not be changed
+        dbAlias: nsiws-struct-db
+        # -- Specifies if the mapping store database should reset (true) or persist
+        # (false) all the changes done to the artifacts, when the container is
+        # restarted.
+        resetStructureDb: false
+        # -- Specifies the mapping store database version to be used, if not the latest
+        # is required. Use this parameter only when you know what you are doing.
+        dbVersion: "7.7"
+
+      # -- Additional environment variables
+      env: []
+
+      securityContext:
+        {}
+        # readOnlyRootFilesystem: true
+        # allowPrivilegeEscalation: false
+        # privileged: false
+        # capabilities:
+        #   drop:
+        #   - all
+        # runAsGroup: 1654
+        # runAsUser: 1654
+        # runAsNonRoot: true
+
+      resources:
+        {}
+        # We usually recommend not to specify default resources and to leave this as a conscious
+        # choice for the user. This also increases chances charts run on environments with little
+        # resources, such as Minikube. If you do want to specify resources, uncomment the following
+        # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+        # limits:
+        #   cpu: 100m
+        #   memory: 128Mi
+        # requests:
+        #   cpu: 100m
+        #   memory: 128Mi
+
+      volumeMounts:
+        []
+        # - name: foo
+        #   mountPath: "/etc/foo"
+        #   readOnly: true
+
+  data:
+    # -- Enable structure database init job
+    enabled: false
+
+    # -- Roll deployment on job change
+    rollDeployment: false
+
+    podSecurityContext: {}
+
+    annotations:
+      {}
+      # argocd.argoproj.io/hook: PreSync
+      # argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+
+    image:
+      repository: siscc/dotstatsuite-dbup
+      pullPolicy: IfNotPresent
+      # -- Overrides the image tag whose default is the chart appVersion.
+      tag: "v31.0.0"
+
+    # -- The DBA scripts are not executed: it will not create logins / users, won't
+    # put the DB in restricted mode while running
+    executeDbaScripts: true
+    # -- Drops the database before creating it
+    dropDb: false
+    # -- Changes the passwords of existing loginName and ROloginName logins in
+    # database
+    alterPasswords: false
+    # -- Optional. When provided, uses the given value (name of the time zone)
+    # instead of trying to determine it in the related sql script(s). Should be
+    # used in cases when the stored procedure [MASTER].[dbo.xp_regread] cannot
+    # be executed.
+    timezone: ""
+    # -- The execution timeout in minutes
+    executionTimeout: 30
+
+    googleLogging:
+      {}
+      # Google.Cloud logging projectId
+      # projectId: ""
+      # Google.Cloud logging logId
+      # logId: DbUp
+
+    securityContext:
+      {}
+      # readOnlyRootFilesystem: true
+      # allowPrivilegeEscalation: false
+      # privileged: false
+      # capabilities:
+      #   drop:
+      #   - all
+      # runAsGroup: 1654
+      # runAsUser: 1654
+      # runAsNonRoot: true
+
+    resources:
+      {}
+      # requests:
+      #   cpu: 100m
+      #   memory: 50Mi
+      # limits:
+      #   cpu: 500m
+      #   memory: 100Mi
+
+    volumeMounts: []
+
+monitoring:
+  # -- Enable monitoring by adding a dotnet monitoring side-car
+  enabled: false
+
+  # -- Monitoring is build for the dotnet-monitor container from Microsoft
+  image:
+    repository: mcr.microsoft.com/dotnet/monitor
+    pullPolicy: IfNotPresent
+    # -- Overrides the image tag whose default is the chart appVersion.
+    tag: "8"
+
+  # -- Port number to listen to for metrics requests
+  port: 52325
+
+  # -- The collectionInterval is the amount of seconds between 2 collection events
+  collectionInterval: 5
+  # -- The collectionCount is the amount of collections exposed at the metrics endpoint
+  collectionCount: 3
+  # -- The collection interval and count together form the metrics scrape interval:
+  # scrapeInterval = collectionInterval*collectionCount
+
+  # -- Additional metrics providers and counter names
+  # https://github.com/dotnet/dotnet-monitor/blob/main/documentation/configuration/metrics-configuration.md#custom-metrics
+  providers:
+    - ProviderName: System.Runtime
+    - ProviderName: Microsoft.AspNetCore.Hosting
+    - ProviderName: Microsoft.AspNetCore.Http.Connections
+    - ProviderName: Microsoft-AspNetCore-Server-Kestrel
+    - ProviderName: System.Net.Http
+
+  # -- Additional environment variables
+  env: []
+
+  resources:
+    {}
+    # Recommende resource request and limits:
+    # https://github.com/dotnet/dotnet-monitor/blob/main/documentation/kubernetes.md#recommended-container-limits
+    # requests:
+    #   memory: "32Mi"
+    #   cpu: "50m"
+    # limits:
+    #   memory: "256Mi"
+    #   cpu: "250m"
+
+  # -- Make sure the user for the main container and the monitoring side car are
+  # the same!
+  securityContext:
+    {}
+    # allowPrivilegeEscalation: false
+    # privileged: false
+    # capabilities:
+    #   drop:
+    #   - all
+    # runAsGroup: 1654
+    # runAsUser: 1654
+    # runAsNonRoot: true
+    # readOnlyRootFilesystem: true
+
+  volumeMounts:
+    []
+    # - name: foo
+    #   mountPath: "/etc/foo"
+    #   readOnly: true
+
+  serviceMonitor:
+    # -- Enables the deployment of a serviceMonitor resource
+    enabled: false
+
+  grafanaDashboard:
+    #
+    enabled: false
+
+# -- Additional volumes on the output Deployment definition.
+volumes:
+  []
+  # - name: foo
+  #   secret:
+  #     secretName: mysecret
+  #     optional: false
+
+hostAliases: []
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+serviceAccount:
+  # -- Specifies whether a service account should be created
+  create: true
+  # -- Automatically mount a ServiceAccount's API credentials?
+  automount: true
+  # -- Annotations to add to the service account
+  annotations: {}
+  # -- The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname
+  # template
+  name: ""
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+service:
+  annotations: {}
+  type: ClusterIP
+  port: 8080
+
+ingress:
+  enabled: false
+  className: ""
+  annotations:
+    {}
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+  hosts:
+    - host: chart-example.local
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls:
+    []
+    # - secretName: chart-example-tls
+    #   hosts:
+    #     - chart-example.local
+
+httpRoute:
+  # -- enables the creation of an HTTPRoute
+  enabled: false
+
+  # -- Add annotations to the route
+  annotations: {}
+
+  # -- A least one parentRef is required
+  parentRefs: []
+
+  # -- Hostnames to match the route
+  hostnames: []
+
+  # -- Defines filters for the default backend
+  serviceBackendFilters: []
+
+  # -- Defines what the default service backend matches
+  serviceBackendMatches:
+    - path:
+        type: PathPrefix
+        value: /
+
+  # -- Defines addional rules
+  additionalRules: []
+
+networkPolicies:
+  # -- Enables the deployment of network policies
+  # You can use YAML anchors to refer to other parts of the values file, like
+  # the service port for example
+  # https://helm.sh/docs/chart_template_guide/yaml_techniques/#yaml-anchors
+  enabled: false
+
+  # -- Enable ingress network policies
+  enableIngress: true
+
+  # -- The list selectors allowed to acces the pod on the http port
+  httpSelectors:
+    []
+    # - namespaceSelector:
+    #     matchLabels:
+    #       kubernetes.io/metadata.name: namespace-name
+    #   podSelector:
+    #     matchLabels:
+    #       label: value
+
+  # -- The list selectors allowed to acces the pod on the metrics port
+  metricsSelectors:
+    []
+    # - namespaceSelector:
+    #     matchLabels:
+    #       kubernetes.io/metadata.name: namespace-name
+    #   podSelector:
+    #     matchLabels:
+    #       label: value
+
+  additionalIngressRules:
+    []
+    # - from:
+    #     - namespaceSelector:
+    #         matchLabels:
+    #           kubernetes.io/metadata.name: namespace-name
+    #       podSelector:
+    #         matchLabels:
+    #           label: value
+    #   ports:
+    #     - protocol: TCP
+    #       port: 80
+
+  # -- Enable egress policies
+  enableEgress: false
+
+  egressRules:
+    []
+    # - {}
+
+probe:
+  # -- Enables an HTTP probe
+  enabled: false
+  # -- Probe interval
+  interval: "30s"
+  # -- Label to get picked up by the monitoring stack
+  # @default -- release: rancher-monitoring
+  selectorLabel: ""
+  # -- Additional labels to add to the probe and prometheus metric
+  extraLabels: {}
+  # -- Name of the module to use for probing
+  module: "http_2xx"
+  # -- URL of the prober (blackbox exporter)
+  proberUrl: ""
+  # -- Path used by the prober
+  proberPath: "/probe"
+  # -- Value of the "probe" label, defaults to the probe resource name
+  probeLabel: ""
+  # -- Metric relabeling
+  relabelings: []
+    # - sourceLabels: 
+    #   targetLabel:
+  # -- URLs to probe, usually the HTTPRoute or Ingress hostnames
+  urls: []
