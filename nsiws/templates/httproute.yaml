@@ -1,0 +1,36 @@
+{{- if .Values.httpRoute.enabled }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ include "nsiws.fullname" . }}
+  labels:
+    {{- include "nsiws.labels" . | nindent 4 }}
+  {{- with .Values.httpRoute.annotations }}
+  annotations:
+    {{- . | toYaml | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with .Values.httpRoute.hostnames }}
+  hostnames:
+    {{- . | toYaml | nindent 4 }}
+  {{- end }}
+  {{- with (required "A parentRef is required!" .Values.httpRoute.parentRefs) }}
+  parentRefs:
+    {{- . | toYaml | nindent 4 }}
+  {{- end }}
+  rules:
+    - backendRefs:
+        - name: {{ include "nsiws.fullname" . }}
+          port: {{ .Values.service.port }}
+      {{- with .Values.httpRoute.serviceBackendFilters }}
+      filters:
+        {{- . | toYaml | nindent 8 }}
+      {{- end }}
+      {{- with .Values.httpRoute.serviceBackendMatches }}
+      matches:
+        {{- . | toYaml | nindent 8 }}
+      {{- end }}
+    {{- with .Values.httpRoute.additionalRules }}
+    {{- . | toYaml | nindent 4 }}
+    {{- end }}
+{{- end }}

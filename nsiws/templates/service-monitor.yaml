@@ -1,0 +1,16 @@
+{{- if and .Values.monitoring.enabled .Values.monitoring.serviceMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "nsiws.fullname" . }}
+  labels:
+    {{- include "nsiws.labels" . | nindent 4 }}
+spec:
+  endpoints:
+    - interval: "{{ mul .Values.monitoring.collectionCount .Values.monitoring.collectionInterval }}s"
+      path: /metrics
+      port: metrics
+  selector:
+    matchLabels:
+      {{- include "nsiws.selectorLabels" . | nindent 6 }}
+{{- end }}

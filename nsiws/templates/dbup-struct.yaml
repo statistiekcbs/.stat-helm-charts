@@ -1,0 +1,228 @@
+{{- if .Values.dbInit.structure.enabled -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "nsiws.fullname" . }}-dbup-struct
+  labels:
+    {{- include "nsiws.labels" . | nindent 4 }}
+  annotations:
+    checksum/config: {{ include (print $.Template.BasePath "/maapi-config.yaml") . | sha256sum }}
+    {{- .Values.dbInit.structure.annotations | toYaml | nindent 4 }}
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      securityContext:
+        {{- toYaml .Values.dbInit.structure.podSecurityContext | nindent 8 }}
+
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      initContainers:
+        {{- $addParams := join ";" (append .Values.databases.structure.additionalParams "") }}
+        {{- $addUserParams := join ";" .Values.databases.structure.userSecrets.admin.additionalParams }}
+        - name: dbup-struct
+          securityContext:
+            {{- toYaml .Values.dbInit.structure.securityContext | nindent 12 }}
+          image: "{{ .Values.dbInit.structure.image.repository }}:{{ .Values.dbInit.structure.image.tag }}"
+          imagePullPolicy: {{ .Values.dbInit.structure.image.pullPolicy }}
+          command:
+            - dotnet
+            - DotStat.DbUp.dll
+            - upgrade
+          args:
+            - --force
+            - --mappingStoreDb
+            - --connectionString
+            - Server={{ .Values.databases.structure.serverHostname }},{{ .Values.databases.structure.serverPort }};Database={{ .Values.databases.structure.dbName }};User=$(ADMIN_USER);Password=$(ADMIN_PASSWORD);{{ $addParams }}{{ $addUserParams }}
+            - --loginName
+            - $(WRITER_USER)
+            - --loginPwd
+            - $(WRITER_PASSWORD)
+            {{- if .Values.databases.structure.userSecrets.reader }}
+            - --ROloginName
+            - $(READ_ONLY_USER)
+            - --ROloginPwd
+            - $(READ_ONLY_PASSWORD)
+            {{- end }}
+            {{- if and .Values.dbInit.structure.alterPasswords .Values.dbInit.structure.executeDbaScripts }}
+            - --alterPassword
+            {{- end }}
+            {{- if not .Values.dbInit.structure.executeDbaScripts }}
+            - --withoutDbaScripts
+            {{- end }}
+            {{- with .Values.dbInit.structure.timezone }}
+            - --timezone
+            - '{{ . }}'
+            {{- end }}
+            {{- if and .Values.dbInit.structure.dropDb .Values.dbInit.structure.executeDbaScripts }}
+            - --dropDb
+            {{- end }}
+            - --executionTimeout
+            - '{{ .Values.dbInit.structure.executionTimeout }}'
+            {{- with .Values.dbInit.structure.googleLogging }}
+            - --googleProjectId
+            - '{{ .projectId }}'
+            - --googleLogId
+            - '{{ .logId }}'
+            {{- end }}
+          env:
+            - name: DOTNET_RUNNING_IN_CONTAINERS
+              value: 'true'
+            {{- with .Values.databases.structure.userSecrets.admin }}
+            - name: ADMIN_USER
+              valueFrom:
+                secretKeyRef:
+                  key: {{ .username.key }}
+                  name: {{ include "nsiws.dbSecretName" . | default (include "nsiws.dbGeneratedSecretName" (dict "root" $ "type" "struct" "key" "admin" ) ) }}
+            - name: ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: {{ .password.key }}
+                  name: {{ include "nsiws.dbSecretName" . | default (include "nsiws.dbGeneratedSecretName" (dict "root" $ "type" "struct" "key" "admin" ) ) }}
+            {{- end }}
+            {{- with .Values.databases.structure.userSecrets.writer }}
+            - name: WRITER_USER
+              valueFrom:
+                secretKeyRef:
+                  key: {{ .username.key }}
+                  name: {{ include "nsiws.dbSecretName" . | default (include "nsiws.dbGeneratedSecretName" (dict "root" $ "type" "struct" "key" "writer" ) ) }}
+            - name: WRITER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: {{ .password.key }}
+                  name: {{ include "nsiws.dbSecretName" . | default (include "nsiws.dbGeneratedSecretName" (dict "root" $ "type" "struct" "key" "writer" ) ) }}
+            {{- end }}
+            {{- with .Values.databases.structure.userSecrets.reader }}
+            - name: READ_ONLY_USER
+              valueFrom:
+                secretKeyRef:
+                  key: {{ .username.key }}
+                  name: {{ include "nsiws.dbSecretName" . | default (include "nsiws.dbGeneratedSecretName" (dict "root" $ "type" "struct" "key" "reader" ) ) }}
+            - name: READ_ONLY_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: {{ .password.key }}
+                  name: {{ include "nsiws.dbSecretName" . | default (include "nsiws.dbGeneratedSecretName" (dict "root" $ "type" "struct" "key" "reader" ) ) }}
+            {{- end }}
+          resources:
+            {{- toYaml .Values.dbInit.structure.resources | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          {{- with .Values.dbInit.structure.volumeMounts }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+        - args:
+            - >-
+              cp -v -r /app/maapi-tool/* /maapi-tmp/ && echo "<connectionStrings>
+              <add name=\"{{ .Values.dbInit.structure.maapiContainer.command.dbAlias }}\" 
+              connectionString=\"Data Source={{ .Values.databases.structure.serverHostname }},
+              {{ .Values.databases.structure.serverPort }};
+              Initial Catalog={{ .Values.databases.structure.dbName }};
+              User Id=$STRUCT_DB_USERNAME;Password=$(echo \'$STRUCT_DB_PASSWORD\'
+              | sed -e 's/\&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' -e 's/\"/\&quot;/g');
+              {{ $addParams }}{{ $addUserParams }}\" providerName=\"Microsoft.Data.SqlClient\" />
+              </connectionStrings>" > /maapi-tmp/connections.config
+          command:
+            - /bin/sh
+            - '-c'
+          env:
+            - name: DOTNET_RUNNING_IN_CONTAINERS
+              value: 'true'
+            - name: STRUCT_DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  key: {{ .Values.databases.structure.userSecrets.admin.username.key }}
+                  name: {{ include "nsiws.dbSecretName" .Values.databases.structure.userSecrets.admin | default (include "nsiws.dbGeneratedSecretName" (dict "root" $ "type" "struct" "key" "admin") ) }}
+            - name: STRUCT_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: {{ .Values.databases.structure.userSecrets.admin.password.key }}
+                  name: {{ include "nsiws.dbSecretName" .Values.databases.structure.userSecrets.admin | default (include "nsiws.dbGeneratedSecretName" (dict "root" $ "type" "struct" "key" "admin") ) }}
+          name: create-maapi-secret
+          image: "{{ .Values.dbInit.structure.maapiContainer.image.repository }}:{{ .Values.dbInit.structure.maapiContainer.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.dbInit.structure.maapiContainer.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.dbInit.structure.maapiContainer.securityContext | nindent 12 }}
+          resources:
+            {{- toYaml .Values.dbInit.structure.resources | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: maapi-config
+              mountPath: /app/maapi-tool/Estat.Sri.Mapping.Tool.dll.config
+              subPath: Estat.Sri.Mapping.Tool.dll.config
+            - name: maapi-tmp
+              mountPath: /maapi-tmp
+      containers:
+        - command:
+            {{- if .Values.dbInit.structure.maapiContainer.command.commandOverride -}}
+            {{ .Values.dbInit.structure.maapiContainer.command.commandOverride | toYaml | nindent 12 }}
+            {{- else }}
+            - /bin/sh
+            - -c 
+            - |
+              MA_ALIAS_STATUS=$(dotnet maapi-tool/Estat.Sri.Mapping.Tool.dll list | grep {{ .Values.dbInit.structure.maapiContainer.command.dbAlias }};)
+
+              if [ -z "$MA_ALIAS_STATUS" ]; then
+                echo Alias {{ .Values.dbInit.structure.maapiContainer.command.dbAlias }} not defined in configuration file
+              else
+                echo Alias {{ .Values.dbInit.structure.maapiContainer.command.dbAlias }} found in configuration file
+                
+                if echo "$MA_ALIAS_STATUS" | grep "Not a Mapping Store"; then
+                  echo {{ .Values.dbInit.structure.maapiContainer.command.dbAlias }} is not a Mapping Store database - Attempting to initialize
+
+                  dotnet maapi-tool/Estat.Sri.Mapping.Tool.dll init -m {{ .Values.dbInit.structure.maapiContainer.command.dbAlias }} -f 
+                else
+                  {{- if .Values.dbInit.structure.maapiContainer.command.resetStructureDb }}
+                  echo {{ .Values.dbInit.structure.maapiContainer.command.dbAlias }} is already a Mapping Store database - Attempting to re-initialize
+
+                  dotnet maapi-tool/Estat.Sri.Mapping.Tool.dll init -m {{ .Values.dbInit.structure.maapiContainer.command.dbAlias }} -f
+                  {{- else }}
+                  echo {{ .Values.dbInit.structure.maapiContainer.command.dbAlias }} is a Mapping Store database - Attempting to upgrade to v{{ .Values.dbInit.structure.maapiContainer.command.dbVersion }}
+                  
+                  dotnet maapi-tool/Estat.Sri.Mapping.Tool.dll upgrade -m {{ .Values.dbInit.structure.maapiContainer.command.dbAlias }} -t {{ .Values.dbInit.structure.maapiContainer.command.dbVersion }} -f
+                  {{- end }}
+                fi
+                
+                # Start NSI WS instance
+                exit 0
+              fi
+              exit 1
+            {{- end }}
+          env:
+            - name: DOTNET_RUNNING_IN_CONTAINERS
+              value: 'true'
+            {{- with .Values.dbInit.structure.maapiContainer.env }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          image: "{{ .Values.dbInit.structure.maapiContainer.image.repository }}:{{ .Values.dbInit.structure.maapiContainer.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.dbInit.structure.maapiContainer.image.pullPolicy }}
+          name: maapi
+          securityContext:
+            {{- toYaml .Values.dbInit.structure.maapiContainer.securityContext | nindent 12 }}
+          resources:
+            {{- toYaml .Values.dbInit.structure.maapiContainer.resources | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: maapi-tmp
+              mountPath: /app/maapi-tool/
+          {{- with .Values.dbInit.structure.maapiContainer.volumeMounts }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      restartPolicy: Never
+      volumes:
+        - name: tmp
+          emptyDir: {}      
+        - configMap:
+            name: {{ include "nsiws.fullname" . }}-maapi
+          name: maapi-config
+        - emptyDir: {}
+          name: maapi-tmp
+      {{- with .Values.volumes }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end -}}

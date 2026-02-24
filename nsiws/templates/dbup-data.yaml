@@ -1,0 +1,123 @@
+{{- if .Values.dbInit.data.enabled -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "nsiws.fullname" . }}-dbup-data
+  labels:
+    {{- include "nsiws.labels" . | nindent 4 }}
+  annotations:
+    {{- .Values.dbInit.data.annotations | toYaml | nindent 4 }}
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      securityContext:
+        {{- toYaml .Values.dbInit.data.podSecurityContext | nindent 8 }}
+
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: dbup-data
+          securityContext:
+            {{- toYaml .Values.dbInit.data.securityContext | nindent 12 }}
+          image: "{{ .Values.dbInit.data.image.repository }}:{{ .Values.dbInit.data.image.tag }}"
+          imagePullPolicy: {{ .Values.dbInit.data.image.pullPolicy }}
+          command:
+            - dotnet
+            - DotStat.DbUp.dll
+            - upgrade
+          args:
+            - --force
+            - --dataDb
+            - --connectionString 
+            {{- $addParams := join ";" (append .Values.databases.data.additionalParams "") }}
+            {{- $addUserParams := join ";" .Values.databases.data.userSecrets.admin.additionalParams }}
+            - Server={{ .Values.databases.data.serverHostname }},{{ .Values.databases.data.serverPort }};Database={{ .Values.databases.data.dbName }};User=$(ADMIN_USER);Password=$(ADMIN_PASSWORD);{{ $addParams }}{{ $addUserParams }}
+            - --loginName
+            - $(WRITER_USER)
+            - --loginPwd
+            - $(WRITER_PASSWORD)
+            {{- if .Values.databases.data.userSecrets.reader }}
+            - --ROloginName
+            - $(READ_ONLY_USER)
+            - --ROloginPwd
+            - $(READ_ONLY_PASSWORD)
+            {{- end }}
+            {{- if and .Values.dbInit.data.alterPasswords .Values.dbInit.data.executeDbaScripts }}
+            - --alterPassword
+            {{- end }}
+            {{- if not .Values.dbInit.data.executeDbaScripts }}
+            - --withoutDbaScripts
+            {{- end }}
+            {{- with .Values.dbInit.data.timezone }}
+            - --timezone
+            - '{{ . }}'
+            {{- end }}
+            {{- if and .Values.dbInit.data.dropDb .Values.dbInit.data.executeDbaScripts }}
+            - --dropDb
+            {{- end }}
+            - --executionTimeout
+            - '{{ .Values.dbInit.data.executionTimeout }}'
+            {{- with .Values.dbInit.data.googleLogging }}
+            - --googleProjectId
+            - '{{ .projectId }}'
+            - --googleLogId
+            - '{{ .logId }}'
+            {{- end }}
+          env:
+            - name: DOTNET_RUNNING_IN_CONTAINERS
+              value: 'true'
+            {{- with .Values.databases.data.userSecrets.admin }}
+            - name: ADMIN_USER
+              valueFrom:
+                secretKeyRef:
+                  key: {{ .username.key }}
+                  name: {{ include "nsiws.dbSecretName" . | default (include "nsiws.dbGeneratedSecretName" (dict "root" $ "type" "data" "key" "admin" ) ) }}
+            - name: ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: {{ .password.key }}
+                  name: {{ include "nsiws.dbSecretName" . | default (include "nsiws.dbGeneratedSecretName" (dict "root" $ "type" "data" "key" "admin" ) ) }}
+            {{- end }}
+            {{- with .Values.databases.data.userSecrets.writer }}
+            - name: WRITER_USER
+              valueFrom:
+                secretKeyRef:
+                  key: {{ .username.key }}
+                  name: {{ include "nsiws.dbSecretName" . | default (include "nsiws.dbGeneratedSecretName" (dict "root" $ "type" "data" "key" "writer" ) ) }}
+            - name: WRITER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: {{ .password.key }}
+                  name: {{ include "nsiws.dbSecretName" . | default (include "nsiws.dbGeneratedSecretName" (dict "root" $ "type" "data" "key" "writer" ) ) }}
+            {{- end }}
+            {{- with .Values.databases.data.userSecrets.reader }}
+            - name: READ_ONLY_USER
+              valueFrom:
+                secretKeyRef:
+                  key: {{ .username.key }}
+                  name: {{ include "nsiws.dbSecretName" . | default (include "nsiws.dbGeneratedSecretName" (dict "root" $ "type" "data" "key" "reader" ) ) }}
+            - name: READ_ONLY_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: {{ .password.key }}
+                  name: {{ include "nsiws.dbSecretName" . | default (include "nsiws.dbGeneratedSecretName" (dict "root" $ "type" "data" "key" "reader" ) ) }}
+            {{- end }}
+          resources:
+            {{- toYaml .Values.dbInit.data.resources | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          {{- with .Values.dbInit.data.volumeMounts }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      restartPolicy: Never
+      volumes:
+        - name: tmp
+          emptyDir: {}
+      {{- with .Values.volumes }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end -}}

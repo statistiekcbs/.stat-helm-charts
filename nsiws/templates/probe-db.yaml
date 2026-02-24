@@ -1,0 +1,38 @@
+{{- range $key, $val := .Values.databases }}
+{{- if $val.probe.enabled -}}
+{{- $fullName := printf "%s-%s" (include "nsiws.fullname" $ ) $key -}}
+apiVersion: monitoring.coreos.com/v1
+kind: Probe
+metadata:
+  name: {{ $fullName }}
+  labels:
+    {{- include "nsiws.labels" $ | nindent 4 }}
+    {{- /*
+    see: "Prometheus" CRD (rancher-monitoring-prometheus), spec.probeSelector.matchLabels
+    */}}
+    {{ $val.probe.selectorLabel | default "release: rancher-monitoring" }}
+    {{- with $val.probe.extraLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  interval: {{ $val.probe.interval | default "30s" }}
+  module: {{ $val.probe.module }}
+  prober:
+    path: {{ $val.probe.proberPath | default "/probe" | quote }}
+    url: {{ $val.probe.proberUrl | quote }}
+  targets:
+    staticConfig:
+      labels:
+        probe: {{ $val.probe.probeLabel | default $fullName }}
+        {{- with $val.probe.extraLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with $val.probe.relabelings }}
+      relabelingConfigs:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      static:
+        - "{{ $val.serverHostname }}:{{ $val.serverPort }}"
+---
+{{- end }}
+{{- end }}

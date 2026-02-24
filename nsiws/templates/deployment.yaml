@@ -1,0 +1,267 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "nsiws.fullname" . }}
+  labels:
+    {{- include "nsiws.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  revisionHistoryLimit: {{ .Values.revisionHistoryLimit }}
+  selector:
+    matchLabels:
+      {{- include "nsiws.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/config.yaml") . | sha256sum }}
+        {{- if and .Values.dbInit.structure.enabled .Values.dbInit.structure.rollDeployment }}
+        checksum/struct-init: {{ include (print $.Template.BasePath "/dbup-struct.yaml") . | sha256sum }}
+        {{- end }}
+        {{- if and .Values.dbInit.data.enabled .Values.dbInit.data.rollDeployment }}
+        checksum/data-init: {{ include (print $.Template.BasePath "/dbup-data.yaml") . | sha256sum }}
+        {{- end }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "nsiws.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "nsiws.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- with .Values.hostAliases }}
+      hostAliases:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      initContainers:
+        {{- $addParams := join ";" (append .Values.databases.structure.additionalParams "") -}}
+        {{- $addUserParams := "" -}}
+        {{- if .Values.application.readOnlyStructure }}
+        {{- $addUserParams = join ";" .Values.databases.structure.userSecrets.reader.additionalParams -}}
+        {{- else }}
+        {{- $addUserParams = join ";" .Values.databases.structure.userSecrets.writer.additionalParams -}}
+        {{- end }}
+        - args:
+            - >-
+              cp -v -L -r /app/config/* /config-tmp/ && echo "<connectionStrings>
+              <add name=\"{{ .Values.application.appSettings.mappingStore.Id.Default}}\" 
+              connectionString=\"Data Source={{ .Values.databases.structure.serverHostname }},{{ .Values.databases.structure.serverPort }};
+              Initial Catalog={{ .Values.databases.structure.dbName }};
+              User Id=$STRUCT_DB_USERNAME;Password=$(echo \'$STRUCT_DB_PASSWORD\'
+              | sed -e 's/\&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' -e 's/\"/\&quot;/g');
+              {{ $addParams }}{{ $addUserParams }}\" providerName=\"Microsoft.Data.SqlClient\" />
+              </connectionStrings>" > /config-tmp/connections.config
+          command:
+            - /bin/sh
+            - '-c'
+          env:
+            {{- if .Values.application.readOnlyStructure }}
+            - name: STRUCT_DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  key: {{ .Values.databases.structure.userSecrets.reader.username.key }}
+                  name: {{ include "nsiws.dbSecretName" .Values.databases.structure.userSecrets.reader | default (include "nsiws.dbGeneratedSecretName" (dict "root" $ "type" "struct" "key" "reader") ) }}
+            - name: STRUCT_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: {{ .Values.databases.structure.userSecrets.reader.password.key }}
+                  name: {{ include "nsiws.dbSecretName" .Values.databases.structure.userSecrets.reader | default (include "nsiws.dbGeneratedSecretName" (dict "root" $ "type" "struct" "key" "reader") ) }}
+            {{- else }}
+            - name: STRUCT_DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  key: {{ .Values.databases.structure.userSecrets.writer.username.key }}
+                  name: {{ include "nsiws.dbSecretName" .Values.databases.structure.userSecrets.writer | default (include "nsiws.dbGeneratedSecretName" (dict "root" $ "type" "struct" "key" "writer") ) }}
+            - name: STRUCT_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: {{ .Values.databases.structure.userSecrets.writer.password.key }}
+                  name: {{ include "nsiws.dbSecretName" .Values.databases.structure.userSecrets.writer | default (include "nsiws.dbGeneratedSecretName" (dict "root" $ "type" "struct" "key" "writer") ) }}
+            {{- end }}
+          name: create-struct-secret
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          resources:
+            {{- toYaml .Values.initResources | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: config
+              mountPath: /app/config
+            - name: config-tmp
+              mountPath: /config-tmp
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            {{- if .Values.commandOverride -}}
+            {{ .Values.commandOverride | toYaml | nindent 12 }}
+            {{- else }}
+            - /bin/sh
+            - -c
+            - dotnet NSIWebServiceCore.dll
+            {{- end }}
+          env:
+            - name: DOTNET_RUNNING_IN_CONTAINERS
+              value: 'true'
+            {{- if .Values.application.readOnlyData }}
+            {{- $addUserParams = join ";" .Values.databases.data.userSecrets.reader.additionalParams }}
+            - name: DATA_DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  key: {{ .Values.databases.data.userSecrets.reader.username.key }}
+                  name: {{ include "nsiws.dbSecretName" .Values.databases.data.userSecrets.reader | default (include "nsiws.dbGeneratedSecretName" (dict "root" $ "type" "data" "key" "reader" ) ) }}
+            - name: DATA_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: {{ .Values.databases.data.userSecrets.reader.password.key }}
+                  name: {{ include "nsiws.dbSecretName" .Values.databases.data.userSecrets.reader | default (include "nsiws.dbGeneratedSecretName" (dict "root" $ "type" "data" "key" "reader" ) ) }}
+            {{- else }}
+            {{- $addUserParams = join ";" .Values.databases.data.userSecrets.writer.additionalParams }}
+            - name: DATA_DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  key: {{ .Values.databases.data.userSecrets.writer.username.key }}
+                  name: {{ include "nsiws.dbSecretName" .Values.databases.data.userSecrets.writer | default (include "nsiws.dbGeneratedSecretName" (dict "root" $ "type" "data" "key" "writer" ) ) }}
+            - name: DATA_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: {{ .Values.databases.data.userSecrets.writer.password.key }}
+                  name: {{ include "nsiws.dbSecretName" .Values.databases.data.userSecrets.writer | default (include "nsiws.dbGeneratedSecretName" (dict "root" $ "type" "data" "key" "writer" ) ) }}
+            {{- end }}
+            - name: disseminationDbConnection__dbType
+              value: {{ .Values.databases.data.type }}
+            {{- $addParams = join ";" (append .Values.databases.data.additionalParams "" ) }}
+            - name: disseminationDbConnection__connectionString
+              value: >-
+                Server={{ .Values.databases.data.serverHostname }},{{ .Values.databases.data.serverPort }};Database={{ .Values.databases.data.dbName }};User=$(DATA_DB_USERNAME);Password=$(DATA_DB_PASSWORD);{{ $addParams }}{{ $addUserParams }}
+            {{- if .Values.monitoring.enabled }}
+            - name: DOTNET_DiagnosticPorts
+              value: /diag/dotnet-monitor.sock
+            - name: DOTNET_EnableDiagnostics
+              value: '1'
+            {{- end }}
+            {{- with .Values.env }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+          livenessProbe:
+            failureThreshold: 6
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 25
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 3
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: config-tmp
+              mountPath: /app/config
+            {{- if .Values.monitoring.enabled }}
+            - mountPath: /diag
+              name: diagvol
+            {{- end }}
+            {{- with .Values.volumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+        {{- if .Values.monitoring.enabled }}
+        - name: monitor
+          image: "{{ .Values.monitoring.image.repository }}:{{ .Values.monitoring.image.tag }}"
+          args:
+            - '--configuration-file-path'
+            - '/app/config/dotnet-monitor.json'
+          env:
+            - name: DOTNET_RUNNING_IN_CONTAINERS
+              value: 'true'
+            - name: DOTNETMONITOR_DiagnosticPort__ConnectionMode
+              value: Listen
+            - name: DOTNETMONITOR_DiagnosticPort__EndpointName
+              value: /diag/dotnet-monitor.sock
+            - name: DOTNETMONITOR_Storage__DumpTempFolder
+              value: /diag/dumps
+            - name: DotnetMonitor_Metrics__Endpoints
+              value: http://*:{{ .Values.monitoring.port }}
+            - name: DefaultProcess__Filters__0__ProcessName
+              value: dotnet
+            - name: DotnetMonitor_GlobalCounter__IntervalSeconds
+              value: {{ .Values.monitoring.collectionInterval | quote }}
+            - name: DotnetMonitor_Metrics__MetricCount
+              value: {{ .Values.monitoring.collectionCount | quote }}
+            {{- with .Values.monitoring.env }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          ports:
+            - containerPort: {{ .Values.monitoring.port }}
+              name: metrics
+          resources:
+            {{- toYaml .Values.monitoring.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.monitoring.securityContext | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - mountPath: /diag
+              name: diagvol
+            - mountPath: /app/config
+              name: monitor-config
+            {{- with .Values.monitoring.volumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+        {{- end }}
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: config
+          configMap:
+            name: {{ include "nsiws.fullname" . }}-config
+        - emptyDir: {}
+          name: config-tmp
+        {{- if .Values.monitoring.enabled }}
+        - emptyDir: {}
+          name: diagvol
+        - configMap:
+            name: {{ include "nsiws.fullname" . }}-monitor
+          name: monitor-config
+        {{- end }}
+        {{- with .Values.volumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
