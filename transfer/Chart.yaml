@@ -1,0 +1,15 @@
+apiVersion: v2
+name: transfer
+version: 3.0.0
+description: |
+  A Helm chart for the Dotstat transfer service.
+
+  This chart includes the transfer service application and supports external
+  Secrets as well as th use of probes form the HTTP endpoint
+type: application
+home: https://github.com/statistiekcbs/.stat-helm-charts
+sources:
+  - https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-transfer
+icon: https://raw.githubusercontent.com/statistiekcbs/.stat-helm-charts/refs/heads/main/transfer/icon.png
+appVersion: "17.1.0"
+# OECD release: icecream

@@ -1,0 +1,345 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "transfer.fullname" . }}
+  labels:
+    {{- include "transfer.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "transfer.selectorLabels" . | nindent 6 }}
+  serviceName: {{ include "transfer.fullname" . }}-headless
+  {{- with .Values.application.tempFiles.volumeClaimTemplate }}
+  persistentVolumeClaimRetentionPolicy:
+    whenDeleted: {{ .retentionPolicy.whenDeleted | default "Retain" }}
+    whenScaled: {{ .retentionPolicy.whenDeleted | default "Retain" }}
+  {{- end }}
+  template:
+    metadata:
+      labels:
+        {{- include "transfer.labels" . | nindent 8 }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/config.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "transfer.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+          readinessProbe: # mark pod not-ready (no traffic) after failureThreshold failed checks
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 20
+            timeoutSeconds: 5
+            periodSeconds: 15        
+            failureThreshold: 2
+          livenessProbe: # restart container after failureThreshold failed checks
+            httpGet:
+              path: /live
+              port: http
+            initialDelaySeconds: 25
+            periodSeconds: 25
+            timeoutSeconds: 5
+            failureThreshold: 4              
+          env:
+            - name: DOTNET_RUNNING_IN_CONTAINERS
+              value: "true"
+            - name: ASPNETCORE_URLS
+              value: http://+:{{ .Values.service.port }}
+          {{- if .Values.monitoring.enabled }}
+            - name: DOTNET_DiagnosticPorts
+              value: /diag/dotnet-monitor.sock
+            - name: DOTNET_EnableDiagnostics
+              value: "1"
+            - name: DOTNET_DefaultDiagnosticPortSuspend
+              value: "0"
+          {{- end }}
+            - name: ServiceId
+              value: {{ .Values.application.ServiceId | default "" | quote }}
+            - name: MaxTransferErrorAmount
+              value: {{ .Values.application.MaxTransferErrorAmount | default "" | quote }}
+            - name: DefaultLanguageCode
+              value: {{ required "DefaultLanguageCode needed" .Values.application.DefaultLanguageCode | quote }}
+            - name: AutoLog2Stdout
+              value: {{ .Values.application.AutoLog2Stdout.enabled | default "false" | quote }}
+            - name: AutoLog2StdoutLogLevel
+              value: {{ .Values.application.AutoLog2Stdout.logLevel | default "DEBUG" | quote }}
+            {{- with .Values.application.smtp }}
+            - name: SmtpHost
+              value: {{ required "smtp.host needed" .host | quote }}
+            - name: SmtpPort
+              value: {{ required "smtp.port needed" .port | quote }}
+            - name: SmtpEnableSsl
+              value: {{ required "smtp.enableSsl needed" .enableSsl | quote }}
+            - name: SmtpUserName
+              valueFrom:
+                secretKeyRef:
+                  key: {{ .userSecret.username.key }}
+                  name: {{ include "transfer.dbSecretName" .userSecret | default (include "transfer.dbGeneratedSecretName" (dict "root" $ "type" "smtp" ) ) }}
+            - name: SmtpUserPassword
+              valueFrom:
+                secretKeyRef:
+                  key: {{ .userSecret.password.key }}
+                  name: {{ include "transfer.dbSecretName" .userSecret | default (include "transfer.dbGeneratedSecretName" (dict "root" $ "type" "smtp" ) ) }} 
+            - name: MailFrom
+              value: {{ required "smtp.mailFrom needed" .mailFrom | quote }}
+            - name: SmtpHFrom
+              value: {{ .HFrom | quote | default "" }}
+            {{- end }}
+            {{- range $idx, $val := .Values.application.allowedFileExtensions.edd }}
+            - name: "EddFileAllowedExtensions__{{ $idx }}"
+              value: {{ $val | quote }}
+            {{- end }}
+            {{- range $idx, $val := .Values.application.allowedFileExtensions.excel }}
+            - name: "ExcelFileAllowedExtensions__{{ $idx }}"
+              value: {{ $val | quote }}
+            {{- end }}
+            {{- range $idx, $val := .Values.application.allowedFileExtensions.sdmx }}
+            - name: "SDMXFileAllowedExtensions__{{ $idx }}"
+              value: {{ $val | quote }}
+            {{- end }}
+            {{- range $idx, $val := .Values.application.allowedFileExtensions.sdmxPath }}
+            - name: "SDMXFilePathAllowedExtensions__{{ $idx }}"
+              value: {{ $val | quote }}
+            {{- end }}
+            {{- range $idx, $val := .Values.application.allowedContentType.edd }}
+            - name: "EddFileAllowedContentTypes__{{ $idx }}"
+              value: {{ $val | quote }}
+            {{- end }}
+            {{- range $idx, $val := .Values.application.allowedContentType.excel }}
+            - name: "ExcelFileAllowedContentTypes__{{ $idx }}"
+              value: {{ $val | quote }}
+            {{- end }}
+            {{- range $idx, $val := .Values.application.allowedContentType.sdmx }}
+            - name: "SDMXFileAllowedContentTypes__{{ $idx }}"
+              value: {{ $val | quote }}
+            {{- end }}
+            - name: TempFileDirectory
+              value: {{ .Values.application.tempFiles.directory | default "/app/temp" | quote }}
+            - name: TempFileMaxAgeInHours
+              value: {{ .Values.application.tempFiles.maxAge | default "24" | quote }}
+            - name: MinPercentageDiskSpace
+              value: {{ .Values.application.tempFiles.minPercentageDiskSpace | default "25" | quote }}
+            - name: HttpClientTimeOut
+              value: {{ .Values.application.HttpClientTimeOut | default "120" | quote }}
+            - name: ApplyEmptyDataDbConnectionStringInMSDB
+              value: {{ .Values.application.ApplyEmptyDataDbConnectionStringInMSDB | default "true" | quote }}
+            - name: MaxConcurrentTransactions
+              value: {{ .Values.application.MaxConcurrentTransactions | default "10" | quote }}
+            - name: ShowAdvanceDbHealthInfo
+              value: {{ .Values.application.ShowAdvanceDbHealthInfo | default "true" | quote }}
+            - name: ExcludeNonCodedDimensionsDuringConstraintCalculation
+              value: {{ .Values.application.ExcludeNonCodedDimensionsDuringConstraintCalculation | default "false" | quote }}
+          {{- with required "A common database is required!" .Values.application.commonDb }}
+            - name: COMMON_DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  key: {{ .userSecret.username.key }}
+                  name: {{ include "transfer.dbSecretName" .userSecret | default (include "transfer.dbGeneratedSecretName" (dict "root" $ "type" "common" ) ) }}
+            - name: COMMON_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: {{ .userSecret.password.key }}
+                  name: {{ include "transfer.dbSecretName" .userSecret | default (include "transfer.dbGeneratedSecretName" (dict "root" $ "type" "common" ) ) }}
+            - name: DbType
+              value: {{ .type | default "SqlServer" | quote }}
+            {{- $addParams := join ";" .additionalParams }}
+            - name: DotStatSuiteCoreCommonDbConnectionString
+              value: >-
+                Server={{ .serverHostname }},{{ .serverPort }};Database={{ .dbName }};User=$(COMMON_DB_USERNAME);Password=$(COMMON_DB_PASSWORD);{{ $addParams }}
+          {{- end }}
+          {{- range $spaceIdx, $space := .Values.application.spacesInternal }}
+            - name: "SpacesInternal__{{ $spaceIdx }}__id"
+              value: {{ required (cat "Space ID for space" $spaceIdx "is needed") $space.id | quote }}
+            - name: "SpacesInternal__{{ $spaceIdx }}__DbType"
+              value: {{ $space.data.type | default "SqlServer" | quote }}
+            {{- if $space.timeouts }}
+            - name: "SpacesInternal__{{ $spaceIdx }}__DataImportTimeOutInMinutes"
+              value: {{ $space.timeouts.dataImport | quote }}
+            - name: "SpacesInternal__{{ $spaceIdx }}__DatabaseCommandTimeoutInSec"
+              value: {{ $space.timeouts.databaseCommand | quote }}
+            {{- end }}
+            {{- if $space.autoLog2Db }}
+            - name: "SpacesInternal__{{ $spaceIdx }}__AutoLog2DB"
+              value: {{ $space.autoLog2Db.enabled | default "false" | quote }}
+            - name: "SpacesInternal__{{ $spaceIdx }}__AutoLog2DBLogLevel"
+              value: {{ $space.autoLog2Db.logLevel | default "NOTICE" | quote }}
+            {{- end }}
+            - name: "SpacesInternal__{{ $spaceIdx }}__AllowPITTargetDataVersion"
+              value: {{ $space.AllowPITTargetDataVersion | default "true" | quote }}
+            - name: "SpacesInternal__{{ $spaceIdx }}__NotifyImportBatchSize"
+              value: {{ $space.NotifyImportBatchSize | default "500000" | quote }}
+            - name: "SpacesInternal__{{ $spaceIdx }}__NotifyStillInProcessEveryMinutes"
+              value: {{ $space.NotifyStillInProcessEveryMinutes | default "5" | quote }}
+            - name: "SpacesInternal__{{ $spaceIdx }}__Archive"
+              value: {{ $space.Archive | default "false" | quote }}
+            - name: "SpacesInternal__{{ $spaceIdx }}__KeepHistory"
+              value: {{ $space.KeepHistory | default "false" | quote }}
+            - name: "SpacesInternal__{{ $spaceIdx }}__OptimizedForHighPerformanceReads"
+              value: {{ $space.OptimizedForHighPerformanceReads | default "false" | quote }}
+            - name: "SpacesInternal__{{ $spaceIdx }}__DefaultPartitioningScheme"
+              value: {{ $space.DefaultPartitioningScheme | quote }}
+            - name: "SpacesInternal__{{ $spaceIdx }}__DefaultPartitioningColumn"
+              value: {{ $space.DefaultPartitioningColumn | quote }}
+            - name: "SpacesInternal__{{ $spaceIdx }}__MAXDOPForDsdOptimization"
+              value: {{ $space.MAXDOPForDsdOptimization | default "0" | quote }}
+          {{- with required (cat "Space" $spaceIdx "needs a structure database") $space.structure }}
+            - name: "SpacesInternal__{{ $spaceIdx }}__STRUCT_DB_USERNAME"
+              valueFrom:
+                secretKeyRef:
+                  key: {{ .userSecret.username.key }}
+                  name: {{ include "transfer.dbSecretName" .userSecret | default (include "transfer.generatedSecretName" (dict "root" $ "parts" (list $space.id "struct" ))) }}
+            - name: "SpacesInternal__{{ $spaceIdx }}__STRUCT_DB_PASSWORD"
+              valueFrom:
+                secretKeyRef:
+                  key: {{ .userSecret.password.key }}
+                  name: {{ include "transfer.dbSecretName" .userSecret | default (include "transfer.generatedSecretName" (dict "root" $ "parts" (list $space.id "struct" ))) }}
+            {{- $addParams := join ";" .additionalParams }}
+            - name: "SpacesInternal__{{ $spaceIdx }}__DotStatSuiteCoreStructDbConnectionString"
+              value: >-
+                Server={{ .serverHostname }},{{ .serverPort }};Database={{ .dbName }};User=$(SpacesInternal__{{ $spaceIdx }}__STRUCT_DB_USERNAME);Password=$(SpacesInternal__{{ $spaceIdx }}__STRUCT_DB_PASSWORD);{{ $addParams }}
+          {{- end }}
+          {{- with required (cat "Space" $spaceIdx "needs a data database") $space.data }}
+            - name: "SpacesInternal__{{ $spaceIdx }}__DATA_RW_DB_USERNAME"
+              valueFrom:
+                secretKeyRef:
+                  key: {{ .userSecrets.writer.username.key }}
+                  name: {{ include "transfer.dbSecretName" .userSecrets.writer | default (include "transfer.generatedSecretName" (dict "root" $ "parts" (list $space.id "data" "writer" ))) }}
+            - name: "SpacesInternal__{{ $spaceIdx }}__DATA_RW_DB_PASSWORD"
+              valueFrom:
+                secretKeyRef:
+                  key: {{ .userSecrets.writer.password.key }}
+                  name: {{ include "transfer.dbSecretName" .userSecrets.writer | default (include "transfer.generatedSecretName" (dict "root" $ "parts" (list $space.id "data" "writer" ))) }}
+            {{- $addParams := cat (join ";" .userSecrets.writer.additionalParams) ";" (join ";" .additionalParams) }}
+            - name: "SpacesInternal__{{ $spaceIdx }}__DotStatSuiteCoreDataDbConnectionString"
+              value: >-
+                Server={{ .serverHostname }},{{ .serverPort }};Database={{ .dbName }};User=$(SpacesInternal__{{ $spaceIdx }}__DATA_RW_DB_USERNAME);Password=$(SpacesInternal__{{ $spaceIdx }}__DATA_RW_DB_PASSWORD);{{ $addParams }}
+          {{- if $space.data.userSecrets.reader }}
+            - name: "SpacesInternal__{{ $spaceIdx }}__DATA_RO_DB_USERNAME"
+              valueFrom:
+                secretKeyRef:
+                  key: {{ .userSecrets.reader.username.key }}
+                  name: {{ include "transfer.dbSecretName" .userSecrets.reader | default (include "transfer.generatedSecretName" (dict "root" $ "parts" (list $space.id "data" "reader" ))) }}
+            - name: "SpacesInternal__{{ $spaceIdx }}__DATA_RO_DB_PASSWORD"
+              valueFrom:
+                secretKeyRef:
+                  key: {{ .userSecrets.reader.password.key }}
+                  name: {{ include "transfer.dbSecretName" .userSecrets.reader | default (include "transfer.generatedSecretName" (dict "root" $ "parts" (list $space.id "data" "reader" ))) }}
+            {{- $addParams := cat (join ";" .userSecrets.reader.additionalParams) ";" (join ";" .additionalParams) }}
+            - name: "SpacesInternal__{{ $spaceIdx }}__DotStatSuiteCoreDataDbConnectionStringReadOnlyReplica"
+              value: >-
+                Server={{ .serverHostname }},{{ .serverPort }};Database={{ .dbName }};User=$(SpacesInternal__{{ $spaceIdx }}__DATA_RO_DB_USERNAME);Password=$(SpacesInternal__{{ $spaceIdx }}__DATA_RO_DB_PASSWORD);{{ $addParams }}
+          {{- end }}
+          {{- end }}
+          {{- end }}
+          {{- with .Values.env }}
+            {{- . | toYaml | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: input
+              mountPath: {{ .Values.inputVolume.mountPath }}
+            - name: {{ include "transfer.fullname" . }}-temp
+              mountPath: {{ .Values.application.tempFiles.directory | quote }}
+            - name: logs
+              mountPath: /app/logs
+          {{- if .Values.monitoring.enabled }}
+            - mountPath: /diag
+              name: diagvol
+          {{- end }}
+          {{- with .Values.volumeMounts }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+        {{- if .Values.monitoring.enabled }}
+        - name: monitor
+          image: "{{ .Values.monitoring.image.repository }}:{{ .Values.monitoring.image.tag }}"
+          ports:
+            - name: metrics
+              containerPort: {{ .Values.monitoring.port }}
+          resources:
+            {{- toYaml .Values.monitoring.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.monitoring.securityContext | nindent 12 }}
+          env:
+            - name: DOTNETMONITOR_DiagnosticPort__ConnectionMode
+              value: Listen
+            - name: DOTNETMONITOR_DiagnosticPort__EndpointName
+              value: /diag/dotnet-monitor.sock
+            - name: DOTNETMONITOR_Storage__DumpTempFolder
+              value: /diag/dumps
+            - name: DOTNETMONITOR_Urls
+              value: http://+:{{ .Values.monitoring.port }}
+            - name: DotnetMonitor_GlobalCounter__IntervalSeconds
+              value: {{ .Values.monitoring.collectionInterval | quote }}
+            - name: DotnetMonitor_Metrics__MetricCount
+              value: {{ .Values.monitoring.collectionCount | quote }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: diagvol
+              mountPath: /diag
+            {{- with .Values.monitoring.volumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+        {{- end }}
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: input
+          persistentVolumeClaim:
+            claimName: {{ coalesce .Values.inputVolume.persistentVolumeClaim.name (include "transfer.inputVolumeName" .) }}
+        - name: logs
+          emptyDir: {}
+        {{- if not .Values.application.tempFiles.volumeClaimTemplate.enabled }}
+        - name: {{ include "transfer.fullname" . }}-temp
+          emptyDir: {}
+        {{- end }}
+        {{- if .Values.monitoring.enabled }}
+        - name: diagvol
+          emptyDir: {}
+        {{- end }}
+        {{- with .Values.volumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+  {{- if .Values.application.tempFiles.volumeClaimTemplate.enabled }}
+  volumeClaimTemplates:
+  - metadata:
+      name: {{ include "transfer.fullname" . }}-temp
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: {{ .Values.application.tempFiles.volumeClaimTemplate.size }}
+  {{- end }}

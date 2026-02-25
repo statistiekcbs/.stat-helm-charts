@@ -1,0 +1,26 @@
+{{- if not .Values.archiveVolume.persistentVolume.name }}
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ include "transfer.archiveVolumeName" . }}
+  labels:
+    {{- include "transfer.labels" . | nindent 4 }}
+  {{- with .Values.archiveVolume.persistentVolume.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  accessModes:
+    - ReadWriteMany
+  capacity:
+    storage: {{ .Values.archiveVolume.persistentVolume.capacity }}
+  {{- with required "The archivePersistentVolume should specify a driver" .Values.archiveVolume.persistentVolume.driver }}
+  {{- tpl (toYaml .) $ | nindent 2 }}
+  {{- end }}
+  {{- with .Values.archiveVolume.persistentVolume.mountOptions }}
+  mountOptions:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  persistentVolumeReclaimPolicy: {{ .Values.archiveVolume.persistentVolume.reclaimPolicy }}
+  storageClassName: {{ .Values.archiveVolume.persistentVolume.storageClass }}
+{{- end }}

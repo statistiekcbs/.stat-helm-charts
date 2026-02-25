@@ -1,0 +1,20 @@
+{{- if not .Values.archiveVolume.persistentVolumeClaim.name }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "transfer.archiveVolumeName" . }}
+  labels:
+    {{- include "transfer.labels" . | nindent 4 }}
+  {{- with .Values.archiveVolume.persistentVolumeClaim.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: {{ .Values.archiveVolume.persistentVolumeClaim.size }}
+  volumeName: {{ coalesce .Values.archiveVolume.persistentVolume.name (include "transfer.archiveVolumeName" .) }}
+  storageClassName: {{ .Values.archiveVolume.persistentVolumeClaim.storageClass | default "" }}
+{{- end }}

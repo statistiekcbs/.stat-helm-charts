@@ -1,0 +1,26 @@
+{{- if not .Values.inputVolume.persistentVolume.name }}
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ include "transfer.inputVolumeName" . }}
+  labels:
+    {{- include "transfer.labels" . | nindent 4 }}
+  {{- with .Values.inputVolume.persistentVolume.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  accessModes:
+    - ReadWriteMany
+  capacity:
+    storage: {{ .Values.inputVolume.persistentVolume.capacity }}
+  {{- with required "The inputPersistentVolume should specify a driver" .Values.inputVolume.persistentVolume.driver }}
+  {{- tpl (toYaml .) $ | nindent 2 }}
+  {{- end }}
+  {{- with .Values.inputVolume.persistentVolume.mountOptions }}
+  mountOptions:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  persistentVolumeReclaimPolicy: {{ .Values.inputVolume.persistentVolume.reclaimPolicy }}
+  storageClassName: {{ .Values.inputVolume.persistentVolume.storageClass }}
+{{- end }}

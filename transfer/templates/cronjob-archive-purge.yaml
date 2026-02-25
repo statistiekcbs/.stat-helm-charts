@@ -1,0 +1,53 @@
+{{- if .Values.archivePurgeJob.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "transfer.fullname" . }}-archive-purge
+  labels:
+    {{- include "transfer.labels" . | nindent 4 }}
+  {{- with .Values.archivePurgeJob.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  schedule: {{ .Values.archivePurgeJob.schedule | quote }}
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            {{- include "transfer.labels" . | nindent 12 }}
+          {{- with .Values.archivePurgeJob.podAnnotations }}
+          annotations:
+            {{- toYaml . | nindent 8 }}
+          {{- end }}
+        spec:
+          securityContext:
+            {{- toYaml .Values.podSecurityContext | nindent 12 }}
+          restartPolicy: OnFailure
+          containers:
+            - env:
+                - name: DELETE_AGE
+                  value: {{ .Values.archivePurgeJob.fileAge | quote }}
+              args:
+                - /bin/sh
+                - -c
+                - find /archive -mtime +$DELETE_AGE -type f -delete
+              image: "{{ .Values.archivePurgeJob.image.repository }}:{{ .Values.archivePurgeJob.image.tag | default "latest" }}"
+              name: archive
+              imagePullPolicy: {{ .Values.archivePurgeJob.image.pullPolicy }}
+              securityContext:
+                {{- toYaml .Values.securityContext | nindent 16 }}
+              resources: 
+                {{- toYaml .Values.archivePurgeJob.resources | nindent 16 }}
+              volumeMounts:
+                - name: archive
+                  {{- with .Values.archiveVolume.subPath }}
+                  subPath: {{ . }}
+                  {{- end }}
+                  mountPath: /archive
+          volumes:
+            - name: archive
+              persistentVolumeClaim:
+                claimName: {{ coalesce .Values.archiveVolume.persistentVolumeClaim.name (include "transfer.archiveVolumeName" .) }}
+{{- end }}
