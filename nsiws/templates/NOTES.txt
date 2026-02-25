@@ -5,8 +5,8 @@
   http{{ if $.Values.ingress.tls }}s{{ end }}://{{ $host.host }}{{ .path }}
   {{- end }}
 {{- end }}
-{{- else if .Values.HTTPRoute.enabled }}
-{{- range $host := .Values.HTTPRoute.hostnames }}
+{{- else if .Values.httpRoute.enabled }}
+{{- range $host := .Values.httpRoute.hostnames }}
   http://{{ $host }} (this might be https depending on your gateway configuration)
 {{- end }}
 {{- else if contains "NodePort" .Values.service.type }}
