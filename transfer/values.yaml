@@ -1,0 +1,719 @@
+# Default values for transfer.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  repository: siscc/dotstatsuite-core-transfer
+  pullPolicy: IfNotPresent
+  # -- Overrides the image tag whose default is the chart appVersion.
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext:
+  {}
+  # fsGroup: 2000
+
+application:
+  # -- A unique identifier for a transfer service instance. This is used to be able
+  # to cancel not properly closed requests, initiated by this instance of the
+  # application. When no value is provided, the transfer service will not try to
+  # do the cleanup at startup.
+  ServiceId:
+  # -- Maximum number of errors allowed before a transfer transaction stops
+  MaxTransferErrorAmount: 0
+  # -- Default language for localozed resources (transfer alert msgs.) ex. "en"
+  DefaultLanguageCode:
+  AutoLog2Stdout:
+    # -- Automatically log to standard output
+    enabled: false
+    # -- Log level for standard output
+    logLevel: DEBUG
+  smtp:
+    # -- SMTP host config. to send user notifications
+    host:
+    # -- SMTP port config. to send user notifications
+    port:
+    # -- SMTP enagle SSL to send user notifications
+    enableSsl: true
+    userSecret:
+      # -- Secret name for username and password
+      name: ""
+      # -- Set to true to use an external
+      # When using an external secret , the secret name is generated
+      isExternal: false
+      annotations: {}
+      username:
+        # -- The username secret key
+        key: ""
+        # -- When using an external secret, remoteRef.key is required
+        # If remoteRef.property is not set, username.key is used
+        remoteRef:
+          key: ""
+      password:
+        # -- The password secret key
+        key: ""
+        # -- When using an external secret, remoteRef.key is required
+        # If remoteRef.property is not set, password.key is used
+        remoteRef:
+          key: ""
+      # -- When using an external secret, secretStoreRef.name is required
+      secretStoreRef:
+        name: ""
+        # kind: ClusterSecretStore
+      # When using an external secret, if target.name is not set, the generated
+      # seret name will be used
+      # target:
+      #   creationPolicy: Owner
+      #   deletionPolicy: Retain
+      #   name: ""
+      # refreshInterval: 24h
+    # -- Email account from which the user notifications will be sent
+    mailFrom:
+    # -- Value for optional HFrom mail header in SMTP request
+    HFrom:
+  # List of internal spaces ex. capture, stage, design, disseminate
+  spacesInternal:
+    - # -- Unique identifier for the space, ex. "design"
+      id: 
+      # Structure DB conncection
+      structure:
+        # -- Server URL
+        serverHostname: ""
+        serverPort: 1433
+        # -- Database name
+        dbName: ""
+        userSecret:
+          # -- Secret name for username and password
+          name: ""
+          # -- Set to true to use an external
+          # When using an external secret , the secret name is generated
+          isExternal: false
+          annotations: {}
+          username:
+            # -- The username secret key
+            key: ""
+            # -- When using an external secret, remoteRef.key is required
+            # If remoteRef.property is not set, username.key is used
+            remoteRef:
+              key: ""
+          password:
+            # -- The password secret key
+            key: ""
+            # -- When using an external secret, remoteRef.key is required
+            # If remoteRef.property is not set, password.key is used
+            remoteRef:
+              key: ""
+          # -- When using an external secret, secretStoreRef.name is required
+          secretStoreRef:
+            name: ""
+            # kind: ClusterSecretStore
+          # When using an external secret, if target.name is not set, the generated
+          # seret name will be used
+          # target:
+          #   creationPolicy: Owner
+          #   deletionPolicy: Retain
+          #   name: ""
+          # refreshInterval: 24h
+        # -- Additional parameters for the connection string
+        additionalParams: []
+
+      # Data DB conncection
+      data:
+        # -- Database type
+        type: SqlServer
+        # -- Server URL
+        serverHostname: ""
+        serverPort: 1433
+        # -- Database name
+        dbName: ""
+
+        userSecrets:
+          writer:
+            # -- Secret name for username and password
+            name: ""
+            # -- Set to true to use an external
+            # When using an external secret , the secret name is generated
+            isExternal: false
+            annotations: {}
+            username:
+              # -- The username secret key
+              key: ""
+              # -- When using an external secret, remoteRef.key is required
+              # If remoteRef.property is not set, username.key is used
+              remoteRef:
+                key: ""
+            password:
+              # -- The password secret key
+              key: ""
+              # -- When using an external secret, remoteRef.key is required
+              # If remoteRef.property is not set, password.key is used
+              remoteRef:
+                key: ""
+            # -- When using an external secret, secretStoreRef.name is required
+            secretStoreRef:
+              name: ""
+              # kind: ClusterSecretStore
+            # When using an external secret, if target.name is not set, the generated
+            # seret name will be used
+            # target:
+            #   creationPolicy: Owner
+            #   deletionPolicy: Retain
+            #   name: ""
+            # refreshInterval: 24h
+
+            # -- Additional parameters for writer connection string
+            additionalParams: []
+          # -- Reader usecredentials. Same spec as writer user.
+          # Specifying this user will populate the
+          # DotStatSuiteCoreDataDbConnectionStringReadOnlyReplica parameter
+          reader: {}
+
+        # -- Additional parameters for all connection strings
+        additionalParams: []
+      timeouts:
+        # -- Max. time in minutes for an data import transaction
+        dataImport:
+        # -- Max. time in seconds for a single command execution
+        databaseCommand:
+      autoLog2Db:
+        # -- Specifies if the log4net logging configuration should be generated
+        # automatically to log into the Data DB
+        enabled: false
+        # -- Specifies the log4net log level applied by the auto-generated database
+        # logger
+        logLevel: NOTICE
+      # -- Specifies if access to Point-in-Time data should be allowed. If false,
+      # attempts to do so result in a 401
+      AllowPITTargetDataVersion: true
+      # -- Specifies a size of a batch of observations processed, before notifying
+      # the amount of observations processed so far, and the batch number
+      NotifyImportBatchSize: 500000
+      # -- Notify that the transaction is still in progress every given minutes
+      NotifyStillInProcessEveryMinutes: 5
+      # -- Specifies if all the data and referential metadata stored in this
+      # dataspace should be archived (use COLUMNSTORE_ARCHIVE compression).
+      Archive: false
+      # -- Specifies if this dataspace should keep track of historical changes to
+      # the data values, for the use of the features 'asOf' and 'includeHistory'
+      # NB! Once the dataspace is configured with this setting and has some data
+      # imported it is not reversible, so one should decide whether historical
+      # data is needed or not for a given dataspace during the first setup.
+      # Enabling KeepHistory is not supported if you plan to use PIT release
+      # (setting targetVersion=1 when doing sdmx import). Also note that
+      # enabling this feature would require extra disk space on SQL server side
+      # to keep historical changes.
+      KeepHistory: false
+      # -- Specifies if dataspace is configured as a High Performance Reads (HPR)
+      # dataspace. See more about optimization and table partitioning
+      OptimizedForHighPerformanceReads: false
+      # -- The partition scheme to be used to further optimize the tables for High
+      # Performance Reads (HPR) dataspaces
+      DefaultPartitioningScheme: ""
+      # -- The partition column to be used to further optimize the tables for High
+      # Performance Reads (HPR) dataspaces
+      DefaultPartitioningColumn: ""
+      # -- The Max Degree of Parallelism to be used while making the optimized
+      # table copies for High Performance Reads (HPR) dataspaces.
+      MAXDOPForDsdOptimization: 0
+
+  # -- List of localized resources, used to translate the alert/logging messages
+  # https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-transfer#localizedresources
+  localizedResources: {}
+    # en:
+    #   MailSubject: "Data Lifecycle Manager transfer request ID - '{0}', target space '{1}'"
+    #   MailBody: "<p>Dear DLM user, your transfer has been processed in the system, please see below the details:</p><div><h3>Summary</h3>{0}</div><h3>Transaction messages</h3><table style=\"padding:5px\"><tr><th>Date</th><th>Level</th><th>Message</th></tr>{1}</table>"
+    #   EmailSummary: "<ul><li><strong>Request ID:</strong> {0}</li>{1}<li><strong>Destination data space:</strong> {2}</li><li><strong>Dataflow:</strong> {3}</li><li><strong>User:</strong> {4}</li><li><strong>Request status:</strong> {5}</li></ul>"
+    #   EmailSummarySourceDataSpace: "<li><strong>Destination data space:</strong> {0}</li>"
+    # fr:
+    #   MailSubject: "Data Lifecycle Manager transfer request ID - '{0}', target space '{1}'"
+    #   MailBody: "<p>Dear DLM user, your transfer has been processed in the system, please see below the details:</p><div><h3>Summary</h3>{0}</div><h3>Transaction messages</h3><table style=\"padding:5px\"><tr><th>Date</th><th>Level</th><th>Message</th></tr>{1}</table>"
+    #   EmailSummary: "<ul><li><strong>Request ID:</strong> {0}</li>{1}<li><strong>Destination data space:</strong> {2}</li><li><strong>Dataflow:</strong> {3}</li><li><strong>User:</strong> {4}</li><li><strong>Request status:</strong> {5}</li></ul>"
+    #   EmailSummarySourceDataSpace: "<li><strong>Destination data space:</strong> {0}</li>"
+
+  commonDb:
+    # -- Database type
+    type: SqlServer
+    # -- Server URL
+    serverHostname: ""
+    serverPort: 1433
+    # -- Database name
+    dbName: ""
+    userSecret:
+      # -- Secret name for username and password
+      name: ""
+      # -- Set to true to use an external
+      # When using an external secret , the secret name is generated
+      isExternal: false
+      annotations: {}
+      username:
+        # -- The username secret key
+        key: ""
+        # -- When using an external secret, remoteRef.key is required
+        # If remoteRef.property is not set, username.key is used
+        remoteRef:
+          key: ""
+      password:
+        # -- The password secret key
+        key: ""
+        # -- When using an external secret, remoteRef.key is required
+        # If remoteRef.property is not set, password.key is used
+        remoteRef:
+          key: ""
+      # -- When using an external secret, secretStoreRef.name is required
+      secretStoreRef:
+        name: ""
+        # kind: ClusterSecretStore
+      # When using an external secret, if target.name is not set, the generated
+      # seret name will be used
+      # target:
+      #   creationPolicy: Owner
+      #   deletionPolicy: Retain
+      #   name: ""
+      # refreshInterval: 24h
+
+    # -- Additional parameters for the connection string
+    additionalParams: []
+  allowedFileExtensions:
+    # -- List of allowed file extensions for Edd files
+    edd: []
+    # -- List of allowed file extensions for Excel files
+    excel: []
+    # -- List of allowed file extensions for SDMX files
+    sdmx: []
+    # -- When the key is specified, only files with the allowed extensions can be
+    # read using the filepath parameter.
+    sdmxPath: []
+  allowedContentType:
+    # -- List of allowed file content types for Edd files
+    edd: []
+    # -- List of allowed file content types for Excel files
+    excel: []
+    # -- List of allowed file content types for SDMX files
+    sdmx: []
+  tempFiles:
+    # Volume claim used for the temp folder
+    volumeClaimTemplate:
+      # -- Use a volumeClaimTemplate for the temp files. If disabled will mount an
+      # emptyDir
+      enabled: true
+      retentionPolicy:
+        # -- Sets the volumeclaim retention policy when the statefulset is
+        # deleted
+        whenDeleted: Retain
+        # -- Sets the volumeclaim retention policy when the statefulset is
+        # scalled (down)
+        whenScaled: Retain
+      # -- Set the size of the volume claim
+      size: 15Gi
+    # -- A path to an accessible directory to temporary store the imported files.
+    # The default value is the current user's temporary folder +
+    # '/TransferService'
+    directory: /app/temp
+    # -- The maximum time in hours that an imported file, of a failed transaction,
+    # is stored in the TempFileDirectory.
+    maxAge: 24
+    # -- The minimum allowed percentage of available disk space in the
+    # TempFileDirectory, before accepting any file upload request
+    minPercentageDiskSpace: 25
+  # -- The timeout in seconds to wait before the http request times out
+  HttpClientTimeOut: 120
+  # -- Controls whether data db connection info should contain dummy value
+  # ("NOT_SAVED") for server, database, user name and password
+  ApplyEmptyDataDbConnectionStringInMSDB: true
+
+  # -- The Maximum number of requests to be processed at the same time. When more
+  # requests are submited, the extra amount of requests are stored in a queue
+  # and process once the system is free.
+  MaxConcurrentTransactions: 10
+  # -- Specifies if the health page should dispaly extended database information
+  # about the data file sizes and connections
+  ShowAdvanceDbHealthInfo: true
+  # -- Indicates if the transfer service should exclude the values found for non
+  # coded dimensions during the calculation of the actual content constraint.
+  ExcludeNonCodedDimensionsDuringConstraintCalculation: false
+  # https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-transfer#google-logging-settings-optional
+  AutoLog2Google:
+    # -- Automatically log to google cloud
+    enabled: false
+    # -- One of (DEBUG,INFO,ERROR)
+    logLevel: DEBUG
+    # -- Google.Cloud logging projectId, required if AutoLog2Google=true
+    projectId:
+    # -- Google.Cloud logging logId
+    logId: DOTSTAT_BACKEND
+  # Controls whether Excel-related features are available in the REST API and
+  # how EPPlus licensing is applied at runtime.
+  # https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-transfer#excel-configuration
+  ExcelConfiguration:
+    # -- Master switch. If false, license isn’t applied and features are off.
+    # If ExcelFeaturesEnabled = true, at least one license field must be
+    # provided (non-empty)
+    ExcelFeaturesEnabled: true
+    EPPlusLicense:
+      # -- Provide if using non-commercial organization EPPlus license.
+      NonCommercialOrganization: sis-cc
+      # -- Provide if using commercial EPPlus license key.
+      Commercial: ""
+      # -- Provide if using non-commercial personal EPPlus license.
+      NonCommercialPersonal: ""
+  # https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-transfer#auth-settings
+  auth:
+    # -- Is openid authentication enabled
+    enabled: true
+    # -- 
+    allowAnonymous: true
+    # -- Authority url of token issuer
+    authority: ""
+    # -- Authorization url (used in swagger UI interface)
+    authorizationUrl: ""
+    # -- Key/value mapping of a key used in the C# code to JWT token claim.
+    claimsMapping:
+      email: "email"
+      groups: "groups"
+    # -- Client/application Id
+    clientId: ""
+    # -- Is HTTPS connection to OpenId authority server required
+    requireHttps: false
+    # -- Requested openId scopes (used as parameters for authorization url)
+    scopes: []
+    #
+    showPii: false
+    # -- Token url (used in swagger UI interface), optional, if not defined will be
+    # constructed based on authorizationUrl
+    tokenUrl:
+    # -- Is iss (issuer) claim in JWT token should match configured authority
+    validateIssuer: false
+  # -- Maximum size of the imported files
+  # https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-transfer#changing-the-maximum-size-of-the-imported-files
+  MaxRequestBodySize: 30000000
+
+# -- Additional environment variables to be passed to the transfer service
+env: []
+
+securityContext:
+  {}
+  # readOnlyRootFilesystem: true
+  # allowPrivilegeEscalation: false
+  # capabilities:
+  #   drop:
+  #     - all
+  # privileged: false
+  # runAsGroup: 65534
+  # runAsNonRoot: true
+  # runAsUser: 65534
+
+resources:
+  {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # requests:
+  #   memory: 512Mi
+  #   cpu: 250m
+  # limits:
+  #   memory: 512Mi
+  #   cpu: 1
+
+monitoring:
+  # -- Enable monitoring by adding a dotnet monitoring side-car
+  enabled: false
+
+  # Monitoring is build for the dotnet-monitor container from Microsoft
+  image:
+    repository: mcr.microsoft.com/dotnet/monitor
+    pullPolicy: IfNotPresent
+    tag: "6"
+
+  # -- Port number to listen to for metrics requests
+  port: 52323
+
+  # -- The collectionInterval is the amount of seconds between 2 collection events
+  collectionInterval: 5
+  # -- The collectionCount is the amount of collections exposed at the metrics endpoint
+  collectionCount: 3
+  # The collection interval and count together form the metrics scrape interval:
+  # scrapeInterval = collectionInterval*collectionCount
+
+  # -- Additional metrics providers and counter names
+  # https://github.com/dotnet/dotnet-monitor/blob/main/documentation/configuration/metrics-configuration.md#custom-metrics
+  providers:
+    - ProviderName: System.Runtime
+    - ProviderName: Microsoft.AspNetCore.Hosting
+    - ProviderName: Microsoft.AspNetCore.Http.Connections
+    - ProviderName: Microsoft-AspNetCore-Server-Kestrel
+    - ProviderName: System.Net.Http
+
+  # -- Additional environment variables
+  env: []
+
+  resources:
+    {}
+    # Recommende resource request and limits:
+    # https://github.com/dotnet/dotnet-monitor/blob/main/documentation/kubernetes.md#recommended-container-limits
+    # requests:
+    #   memory: "32Mi"
+    #   cpu: "50m"
+    # limits:
+    #   memory: "256Mi"
+    #   cpu: "250m"
+
+  # -- Make sure the user for the main container and the monitoring side car are
+  # the same!
+  securityContext:
+    {}
+    # allowPrivilegeEscalation: false
+    # privileged: false
+    # capabilities:
+    #   drop:
+    #   - all
+    # runAsUser: 65534
+    # runAsGroup: 65534
+    # runAsNonRoot: true
+    # readOnlyRootFilesystem: true
+
+  volumeMounts:
+    []
+    # - name: foo
+    #   mountPath: "/etc/foo"
+    #   readOnly: true
+
+  serviceMonitor:
+    # Enables the deployment of a serviceMonitor resource
+    enabled: false
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+archiveJob:
+  # -- Enables a cronJob to move files from the input volume to the archive
+  # volume
+  enabled: false
+  image:
+    repository: busybox
+    pullPolicy: IfNotPresent
+    tag: "latest"
+  annotations: {}
+  podAnnotations: {}
+  # -- Sets the schedule for the cronJob
+  schedule: "@daily"
+  # -- Set the file age limit after which files are moved
+  fileAge: 365
+  resources: {}
+    # requests:
+    #   cpu: 100m
+    #   memory: 900Mi
+    # limits:
+    #   cpu: 900m
+    #   memory: 900Mi
+
+archivePurgeJob:
+  # -- Enables a cronJob to delete files from the archive volume
+  enabled: false
+  image:
+    repository: busybox
+    pullPolicy: IfNotPresent
+    tag: "latest"
+  annotations: {}
+  podAnnotations: {}
+  # -- Sets the schedule for the cronJob
+  schedule: "@daily"
+  # -- Set the file age limit after which files are deleted from the archive
+  # volume
+  fileAge: 1095
+  resources: {}
+    # requests:
+    #   cpu: 100m
+    #   memory: 400Mi
+    # limits:
+    #   cpu: 400m
+    #   memory: 400Mi
+
+serviceAccount:
+  # -- Specifies whether a service account should be created
+  create: true
+  # -- Automatically mount a ServiceAccount's API credentials?
+  automount: true
+  # -- Annotations to add to the service account
+  annotations: {}
+  # -- The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname
+  # template
+  name: ""
+
+service:
+  annotations: {}
+  type: ClusterIP
+  port: 8080
+
+archiveVolume:
+  # -- Set the path inside the archive volume where the files will be archived
+  # to
+  subPath: ""
+  persistentVolumeClaim:
+    # -- Name of the volume claim to mount. If not provided, the PVC will be
+    # generated
+    name:
+    annotations: {}
+    # -- Size of the generated PVC
+    size: 5Gi
+    # -- Storage class of the generated PVC
+    storageClass:
+  persistentVolume:
+    # -- Name of the volume for the generated PVC. If not provided, the PV will 
+    # be generated
+    name: 
+    annotations: {}
+    # -- Driver spec for the generated volume
+    driver: {}
+    # -- Capacity of the generated volume
+    capacity: 5Gi
+    # -- Mount options for the generated volume
+    mountOptions: []
+    # -- Reclaim policy for the generated volume
+    reclaimPolicy: Retain
+    # -- Storage class of the generated volume
+    storageClass:
+
+inputVolume:
+  # -- Mount path inside the transfer container
+  mountPath: /input
+  # -- Set the path inside the input volume where the files will be findable
+  # inside the transfer container and they will be archived from
+  subPath: 
+  persistentVolumeClaim:
+    # -- Name of the volume claim to mount. If not provided, the PVC will be
+    # generated
+    name:
+    annotations: {}
+    # -- Size of the generated PVC
+    size: 5Gi
+    # -- Storage class of the generated PVC
+    storageClass:
+  persistentVolume:
+    # -- Name of the volume for the generated PVC. If not provided, the PV will 
+    # be generated
+    name: 
+    annotations: {}
+    # -- Driver spec for the generated volume
+    driver: {}
+    # -- Capacity of the generated volume
+    capacity: 5Gi
+    # -- Mount options for the generated volume
+    mountOptions: []
+    # -- Reclaim policy for the generated volume
+    reclaimPolicy: Retain
+    # -- Storage class of the generated volume
+    storageClass:
+
+volumes: []
+
+volumeMounts: []
+
+httpRoute:
+  # -- enables the creation of an HTTPRoute
+  enabled: false
+
+  # -- Add annotations to the route
+  annotations: {}
+
+  # -- A least one parentRef is required
+  parentRefs: []
+
+  # -- Hostnames to match the route
+  hostnames: []
+
+  # -- Defines filters for the default backend
+  serviceBackendFilters: []
+
+  # -- Defines what the default service backend matches
+  serviceBackendMatches:
+    - path:
+        type: PathPrefix
+        value: /
+
+  # -- Defines addional rules
+  additionalRules: []
+
+networkPolicies:
+  # -- Enables the deployment of network policies
+  enabled: false
+
+  # -- Enable ingress network policies
+  enableIngress: true
+
+  # -- The list selectors allowed to acces the pod on the http port
+  httpSelectors:
+    []
+    # - namespaceSelector:
+    #     matchLabels:
+    #       kubernetes.io/metadata.name: namespace-name
+    #   podSelector:
+    #     matchLabels:
+    #       label: value
+
+  # -- The list selectors allowed to acces the pod on the metrics port
+  metricsSelectors:
+    []
+    # - namespaceSelector:
+    #     matchLabels:
+    #       kubernetes.io/metadata.name: namespace-name
+    #   podSelector:
+    #     matchLabels:
+    #       label: value
+
+  additionalIngressRules:
+    []
+    # - from:
+    #     - namespaceSelector:
+    #         matchLabels:
+    #           kubernetes.io/metadata.name: namespace-name
+    #       podSelector:
+    #         matchLabels:
+    #           label: value
+    #   ports:
+    #     - protocol: TCP
+    #       port: 80
+
+  # -- Enable egress policies
+  enableEgress: false
+
+  egressRules:
+    []
+    # - {}
+
+probe:
+  # -- Enables an HTTP probe
+  enabled: false
+  # -- Probe interval
+  interval: "30s"
+  # -- Label to get picked up by the monitoring stack
+  # @default -- release: rancher-monitoring
+  selectorLabel: ""
+  # -- Additional labels to add to the probe and prometheus metric
+  extraLabels: {}
+  # -- Name of the module to use for probing
+  module: "http_2xx"
+  # -- URL of the prober (blackbox exporter)
+  proberUrl: ""
+  # -- Path used by the prober
+  proberPath: "/probe"
+  # -- Value of the "probe" label, defaults to the probe resource name
+  probeLabel: ""
+  # -- Metric relabeling
+  relabelings: []
+    # - sourceLabels: 
+    #   targetLabel:
+  # -- URLs to probe, usually the HTTPRoute or Ingress hostnames
+  urls: []

@@ -1,0 +1,61 @@
+{{- if .Values.archiveJob.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "transfer.fullname" . }}-archive-input
+  labels:
+    {{- include "transfer.labels" . | nindent 4 }}
+  {{- with .Values.archiveJob.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  schedule: {{ .Values.archiveJob.schedule | quote }}
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            {{- include "transfer.labels" . | nindent 12 }}
+          {{- with .Values.archiveJob.podAnnotations }}
+          annotations:
+            {{- toYaml . | nindent 8 }}
+          {{- end }}
+        spec:
+          restartPolicy: OnFailure
+          securityContext:
+            {{- toYaml .Values.podSecurityContext | nindent 12 }}          
+          containers:
+            - env:
+                - name: ARCHIVE_AGE
+                  value: {{ .Values.archiveJob.fileAge | quote }}
+              args:
+                - /bin/sh
+                - -c
+                - find /input -mtime +$ARCHIVE_AGE -type f -exec sh -c 'mv -v "{}" /archive/`echo "{}" | sed -E "s/\/[^\/]+\///;s/\//_/g;s/\s/_/g"`' \;
+              image: "{{ .Values.archiveJob.image.repository }}:{{ .Values.archiveJob.image.tag | default "latest" }}"
+              name: archive
+              imagePullPolicy: {{ .Values.archiveJob.image.pullPolicy }}
+              securityContext:
+                {{- toYaml .Values.securityContext | nindent 16 }}
+              resources:
+                {{- toYaml .Values.archiveJob.resources | nindent 16 }}
+              volumeMounts:
+                - name: input
+                  {{- with .Values.inputVolume.subPath }}
+                  subPath: {{ . }}
+                  {{- end }}
+                  mountPath: /input
+                - name: archive
+                  {{- with .Values.archiveVolume.subPath }}
+                  subPath: {{ . }}
+                  {{- end }}
+                  mountPath: /archive
+          volumes:
+            - name: input
+              persistentVolumeClaim:
+                claimName: {{ coalesce .Values.inputVolume.persistentVolumeClaim.name (include "transfer.inputVolumeName" .) }}
+            - name: archive
+              persistentVolumeClaim:
+                claimName: {{ coalesce .Values.archiveVolume.persistentVolumeClaim.name (include "transfer.archiveVolumeName" .) }}
+{{- end }}

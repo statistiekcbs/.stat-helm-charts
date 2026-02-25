@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "transfer.fullname" . }}-clip
+  labels:
+    {{- include "transfer.labels" . | nindent 4 }}
+  {{- with .Values.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+  - port: {{ .Values.service.port }}
+    targetPort: http
+    name: http
+  {{- if .Values.monitoring.enabled }}
+  - port: 52323
+    targetPort: metrics
+    name: metrics
+  {{- end }}
+  selector:
+    {{- include "transfer.selectorLabels" . | nindent 4 }}
