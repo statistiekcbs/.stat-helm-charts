@@ -206,13 +206,13 @@ spec:
               value: /diag/dotnet-monitor.sock
             - name: DOTNETMONITOR_Storage__DumpTempFolder
               value: /diag/dumps
-            - name: DotnetMonitor_Metrics__Endpoints
+            - name: DOTNETMONITOR_Metrics__Endpoints
               value: http://*:{{ .Values.monitoring.port }}
             - name: DefaultProcess__Filters__0__ProcessName
               value: dotnet
-            - name: DotnetMonitor_GlobalCounter__IntervalSeconds
+            - name: DOTNETMONITOR_GlobalCounter__IntervalSeconds
               value: {{ .Values.monitoring.collectionInterval | quote }}
-            - name: DotnetMonitor_Metrics__MetricCount
+            - name: DOTNETMONITOR_Metrics__MetricCount
               value: {{ .Values.monitoring.collectionCount | quote }}
             {{- with .Values.monitoring.env }}
             {{- toYaml . | nindent 12 }}
