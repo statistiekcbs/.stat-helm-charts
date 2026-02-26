@@ -257,6 +257,12 @@ spec:
           volumeMounts:
             - name: tmp
               mountPath: /tmp
+            - name: config
+              mountPath: /app/config/appSettings.json
+              subPath: appSettings.json
+            - name: config
+              mountPath: /app/config/kerstelSettings.json
+              subPath: kerstelSettings.json
             - name: input
               mountPath: {{ .Values.inputVolume.mountPath }}
             - name: {{ include "transfer.fullname" . }}-temp
@@ -305,6 +311,9 @@ spec:
       volumes:
         - name: tmp
           emptyDir: {}
+        - name: config
+          configMap:
+            name: {{ include "transfer.fullname" . }}-config
         - name: input
           persistentVolumeClaim:
             claimName: {{ coalesce .Values.inputVolume.persistentVolumeClaim.name (include "transfer.inputVolumeName" .) }}
