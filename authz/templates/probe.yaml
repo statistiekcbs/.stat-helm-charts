@@ -1,0 +1,20 @@
+apiVersion: monitoring.coreos.com/v1
+kind: Probe
+metadata:
+  {{- with .Values.probe.labels }}
+  labels:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  name: {{ include "authz.fullname" . }}
+spec:
+  interval: {{ .Values.probe.interval }}
+  module: {{ .Values.probe.module }}
+  prober:
+    {{- with .Values.probe.prober }}
+      {{- toYaml . | nindent 4 }}
+    {{- end }}
+  targets:
+    {{- with .Values.probe.targets.staticConfig }}    
+    staticConfig:
+          {{- toYaml . | nindent 6 }}
+      {{- end }}

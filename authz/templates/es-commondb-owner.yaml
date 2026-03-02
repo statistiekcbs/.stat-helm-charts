@@ -1,0 +1,22 @@
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: {{ .Values.externalSecrets.commondbOwner.name }}
+  {{- with .Values.externalSecrets.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  data:
+    - remoteRef:
+        key: {{ .Values.externalSecrets.commondbOwner.path }}
+        property: password
+      secretKey: password
+    - remoteRef:
+        key: {{ .Values.externalSecrets.commondbOwner.path }}
+        property: username
+      secretKey: username
+  refreshInterval: 24h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: {{ .Values.externalSecrets.vaultName }}

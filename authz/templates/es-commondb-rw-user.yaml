@@ -1,0 +1,22 @@
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: {{ .Values.externalSecrets.commondbRwUser.name }}
+  {{- with .Values.externalSecrets.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  data:
+    - remoteRef:
+        key: {{ .Values.externalSecrets.commondbRwUser.path }}
+        property: password
+      secretKey: password
+    - remoteRef:
+        key: {{ .Values.externalSecrets.commondbRwUser.path }}
+        property: username
+      secretKey: username
+  refreshInterval: {{ .Values.externalSecrets.refreshInterval }}
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: {{ .Values.externalSecrets.vaultName }}

@@ -1,0 +1,206 @@
+# Default values for authz.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# This will set the replicaset count more information can be found here: https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/
+replicaCount: 2
+
+# This sets the container image more information can be found here: https://kubernetes.io/docs/concepts/containers/images/
+image:
+  repository: siscc/dotstatsuite-core-auth-management
+  # This sets the pull policy for images.
+  pullPolicy: Always
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: "v11.0.0"
+
+# This is for the secrets for pulling an image from a private repository more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+imagePullSecrets: []
+# This is to override the chart name.
+nameOverride: ""
+fullnameOverride: ""
+certName: cbsp-trusted-certs
+
+# This section builds out the service account more information can be found here: https://kubernetes.io/docs/concepts/security/service-accounts/
+serviceAccount:
+  # Specifies whether a service account should be created.
+  create: true
+  # Automatically mount a ServiceAccount's API credentials?
+  automount: true
+  # Annotations to add to the service account.
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template.
+  name: ""
+
+# This is for setting Kubernetes Annotations to a Pod.
+# For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+podAnnotations: 
+  # since we log with OTEL - exclude the logs in fluentbit
+  # TODO: Redo annotaions
+  instrumentation.opentelemetry.io/otel-dotnet-auto-runtime: linux-musl-x64
+  instrumentation.opentelemetry.io/inject-dotnet: opentelemetry-operator-tst/instrumentation
+  fluentbit.io/exclude: "true"
+# This is for setting Kubernetes Labels to a Pod.
+# For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
+podLabels: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+# These contains the names of the externalSecrets, each in the form username/password
+externalSecrets:
+  annotaions: {}
+  refreshInterval: 24h
+  commondbOwner: 
+    name: commondb-owner
+    path: workload01/accounts/mssql/common/owner
+  commondbRwUser: 
+    name: commondb-rw-user
+    path: workload01/accounts/mssql/common/rw
+  commondbRoUser:
+    name: commondb-ro-user
+    path: workload01/accounts/mssql/common/ro
+  vaultName: vault-backend-cbs-workloads
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 65534
+  runAsGroup: 65534
+  allowPrivilegeEscalation: false
+  privileged: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - all
+
+# This is for setting up a service more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/
+service:
+  # This sets the service type more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types
+  type: ClusterIP
+  # This sets the ports more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#field-spec-ports
+  port: 80
+
+# -- Expose the service via gateway-api HTTPRoute
+# Requires Gateway API resources and suitable controller installed within the cluster
+# (see: https://gateway-api.sigs.k8s.io/guides/)
+httpRoute:
+  # HTTPRoute enabled.
+  enabled: true
+  # HTTPRoute annotations.
+  annotations: {}
+  # Which Gateways this Route is attached to.
+  parentRefs:
+  - group: gateway.networking.k8s.io
+    kind: Gateway
+    name: kong
+    namespace: "-override-"
+  # Hostnames matching HTTP header.
+  hostnames: []
+  # List of rules and filters applied.
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: "/"
+    backendRefs:
+    - name: authz-clip
+      port: 80
+
+resources:
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  requests:
+    memory: 250Mi
+    cpu: 5m
+  limits:
+    memory: 250Mi
+    cpu: 100m
+
+# This is to setup the liveness and readiness probes more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
+startupProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 15              
+  successThreshold: 1
+  failureThreshold: 15
+  periodSeconds: 5
+  timeoutSeconds: 3              
+readinessProbe:
+  httpGet:
+    path: /health
+    port: http
+  successThreshold: 1
+  failureThreshold: 2
+  periodSeconds: 10
+  timeoutSeconds: 3
+livenessProbe:
+  httpGet:
+    path: /live
+    port: http
+  successThreshold: 1
+  failureThreshold: 3
+  periodSeconds: 30
+  timeoutSeconds: 3
+
+#These are the values for the prometheus probe
+probe:
+  labels: {}
+  interval: 30s
+  module: http_2xx
+  prober:
+    path: /probe
+    url: "-override-"
+  targets:
+    staticConfig:
+      labels:
+        probe: authz      
+      static:
+        - "-override-"
+
+probedb:
+  labels: {}
+  interval: 30s
+  module: tls_connect
+  prober:
+    path: /probe
+    url: "-override-"
+  targets:
+    staticConfig:
+      labels:
+        probe: authz-db
+      static:
+        - "-override-"
+
+dbupcommon:
+  annotaions: {}
+  version: v31.0.0
+  dbserver_common: "-override-"
+  db_common: "-override-"
+  resources:
+    requests:
+      memory: 100Mi
+      cpu: 25m
+    limits:
+      memory: 100Mi
+      cpu: 200m
+# Additional volumes on the output Deployment definition.
+volumes: []
+  # - name: foo
+  #   secret:
+  #     secretName: mysecret
+  #     optional: false
+
+# Additional volumeMounts on the output Deployment definition.
+volumeMounts: []
+  # - name: foo
+  #   mountPath: "/etc/foo"
+  #   readOnly: true
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

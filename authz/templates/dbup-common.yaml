@@ -1,0 +1,89 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: dbup-common
+  {{- with .Values.dbupcommon.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      securityContext:
+        fsGroup: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - args:
+            - >-
+              dotnet DotStat.DbUp.dll upgrade --connectionString "Server=$(DBSERVER_COMMON);Database=$(DB_COMMON);User=$(OWNER);Password=$(OWNER_PASSWORD);" --commonDb --loginName ${USER} --loginPwd ${USER_PASSWORD} --force --ROloginName ${READ_ONLY_USER} --ROloginPwd ${READ_ONLY_PASSWORD} --withoutDbaScripts ${DBUP_EXTRA_ARGS}
+          command:
+            - sh
+            - '-c'
+          env:
+            - name: DBSERVER_COMMON
+              value: {{ .Values.dbupcommon.dbserver_common }}
+            - name: DB_COMMON
+              value: {{ .Values.dbupcommon.db_common }}
+            - name: OWNER
+              valueFrom:
+                secretKeyRef:
+                  key: username
+                  name: {{ .Values.externalSecrets.commondbOwner }}
+            - name: OWNER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: password
+                  name: {{ .Values.externalSecrets.commondbOwner }}
+            - name: USER
+              valueFrom:
+                secretKeyRef:
+                  key: username
+                  name: {{ .Values.externalSecrets.commondbRwUser }}
+            - name: USER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: password
+                  name: {{ .Values.externalSecrets.commondbRwUser }}
+            - name: READ_ONLY_USER
+              valueFrom:
+                secretKeyRef:
+                  key: username
+                  name: {{ .Values.externalSecrets.commondbRoUser }}
+            - name: READ_ONLY_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: password
+                  name: {{ .Values.externalSecrets.commondbRoUser }}
+            - name: DBUP_EXTRA_ARGS
+              value: ''
+          image: siscc/dotstatsuite-dbup:{{ .Values.dbupcommon.version }}
+          name: dbup-common
+          {{- with .Values.dbupcommon.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          securityContext:
+            runAsUser: 65534
+            runAsGroup: 65534
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            privileged: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - all          
+          volumeMounts:
+            - mountPath: /tmp
+              name: tmp
+            - mountPath: /etc/ssl/certs/{{ .Values.certName }}.pem
+              name: {{ .Values.certName }}
+              subPath: ca.crt
+      restartPolicy: Never
+      volumes:
+        - name: tmp
+          emptyDir: {}      
+        - configMap:
+            name: {{ .Values.certName }}
+          name: {{ .Values.certName }}
