@@ -58,7 +58,7 @@ spec:
             - name: "DotStatSuiteCoreCommonDbConnectionString"
               value: "Server=$(DBSERVER_COMMON);Database=$(DB_COMMON);User=$(USER);Password=$(USER_PASSWORD);"
             - name: "AutoLog2Google"
-              value: "false"
+              value: {{ .Values.env.autoLogToGoogle }}
           command: [ "/bin/sh" ]
           args: [ "-c", "dotnet DotStatServices.AuthorizationManagement.dll" ]
           ports:

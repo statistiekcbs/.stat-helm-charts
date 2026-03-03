@@ -88,6 +88,9 @@ service:
   # This sets the ports more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#field-spec-ports
   port: 8080
 
+env:
+  autoLogToGoogle: false
+
 auth:
   # -- Is openid authentication enabled
   enabled: true
