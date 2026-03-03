@@ -44,8 +44,16 @@ podAnnotations:
 # For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
 podLabels: {}
 
-podSecurityContext: {}
-  # fsGroup: 2000
+podSecurityContext: 
+  seccompProfile:
+    type: RuntimeDefault
+
+topologySpreadConstraints:
+- maxSkew: 1
+  topologyKey: kubernetes.io/hostname
+  whenUnsatisfiable: DoNotSchedule
+  labelSelector:
+    matchLabels: {}
 
 # These contains the names of the externalSecrets, each in the form username/password
 externalSecrets:
@@ -78,7 +86,27 @@ service:
   # This sets the service type more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types
   type: ClusterIP
   # This sets the ports more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#field-spec-ports
-  port: 80
+  port: 8080
+
+auth:
+  # -- Is openid authentication enabled
+  enabled: true
+  audience: openid
+  authority: https://keycloak.user-np01.k8s.cbsp.nl/realms/kerberos
+  authorizationUrl: https://keycloak.user-np01.k8s.cbsp.nl/realms/kerberos/protocol/openid-connect/auth
+  clientId: DotStat-Cbs
+  scopes:
+  - openid
+  - profile
+  - email
+  - groups
+  claimsMapping:
+    email: "email"
+    groups: "groups"
+  requireHttps: false
+  validateIssuer: false
+  allowAnonymous: true
+  showPii: true
 
 # -- Expose the service via gateway-api HTTPRoute
 # Requires Gateway API resources and suitable controller installed within the cluster
@@ -278,7 +306,7 @@ dbupcommon:
       # -- Additional parameters for writer connection string
       additionalParams: []
     reader: {}
-
+  
   additionalParams: []
 
 dbInit:

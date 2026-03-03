@@ -17,15 +17,12 @@ spec:
         {{- toYaml . | nindent 8 }}
     {{- end }}
     spec:
-      topologySpreadConstraints:
-      - maxSkew: 1
-        topologyKey: kubernetes.io/hostname
-        whenUnsatisfiable: DoNotSchedule
-        labelSelector:
-          matchLabels: {}
+      {{- with .Values.topologySpreadConstraints }}
+      topologySpreadConstraints: 
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       securityContext:
-        seccompProfile:
-          type: RuntimeDefault
+        {{- toYaml .Values.podSecurityContext | nindent 8}}
       containers:
         - name: authz
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
@@ -40,11 +37,10 @@ spec:
           {{- end }}
           envFrom:
             - configMapRef:
-                name: authz
+                name: {{ include "authz.fullname" . }}-config
           env:
-          #TODO: port as value
             - name: ASPNETCORE_URLS
-              value: http://+:8080          
+              value: http://+:{{ .Values.service.port }}
             - name: DBSERVER_COMMON
               value: {{ .Values.dbupcommon.dbserver_common }}
             - name: DB_COMMON
@@ -67,8 +63,7 @@ spec:
           args: [ "-c", "dotnet DotStatServices.AuthorizationManagement.dll" ]
           ports:
             - name: http
-            #TODO port
-              containerPort: 8080
+              containerPort: {{ .Values.service.port }}
           {{- with .Values.startupProbe }}
           startupProbe:
             {{- toYaml . | nindent 12 }}
@@ -82,15 +77,14 @@ spec:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           volumeMounts:
-            - mountPath: /etc/ssl/certs/{{ .Values.certName }}.pem
-              name: {{ .Values.certName }}
-              subPath: ca.crt
+            {{- with .Values.volumeMounts }}
+              {{- toYaml . | nindent 14 }}
+            {{- end }}
             - mountPath: /tmp
               name: tmp
       volumes:
-        - name: {{ .Values.certName }}
-          configMap:
-            name: {{ .Values.certName }}
         - name: tmp
-          emptyDir:
-            medium: Memory        
+          emptyDir: {}
+        {{- with .Values.volumes }}
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
