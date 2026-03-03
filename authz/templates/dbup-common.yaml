@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: dbup-common
+  name: {{ include "authz.fullname" . }}-dbup-common
   {{- with .Values.dbupcommon.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
@@ -11,79 +11,105 @@ spec:
   template:
     spec:
       securityContext:
-        fsGroup: 65534
-        seccompProfile:
-          type: RuntimeDefault
+        {{- toYaml .Values.dbupcommon.podSecurityContext | nindent 8 }}
       containers:
-        - args:
-            - >-
-              dotnet DotStat.DbUp.dll upgrade --connectionString "Server=$(DBSERVER_COMMON);Database=$(DB_COMMON);User=$(OWNER);Password=$(OWNER_PASSWORD);" --commonDb --loginName ${USER} --loginPwd ${USER_PASSWORD} --force --ROloginName ${READ_ONLY_USER} --ROloginPwd ${READ_ONLY_PASSWORD} --withoutDbaScripts ${DBUP_EXTRA_ARGS}
+        - image: {{ .Values.dbupcommon.image.repository }}:{{ .Values.dbupcommon.image.tag }}
+          name: dbup-common 
           command:
-            - sh
-            - '-c'
+            - dotnet
+            - DotStat.DbUp.dll
+            - upgrade
+          args:
+            - --force
+            - --commonDb
+            - --connectionString 
+            {{- $addParams := join ";" (append .Values.dbupcommon.additionalParams "") }}
+            {{- $addUserParams := join ";" .Values.dbupcommon.userSecrets.admin.additionalParams }}
+            - Server={{ .Values.dbupcommon.serverHostname }},{{ .Values.dbupcommon.serverPort }};Database={{ .Values.dbupcommon.dbName }};User=$(ADMIN_USER);Password=$(ADMIN_PASSWORD);{{ $addParams }}{{ $addUserParams }}
+            - --loginName
+            - $(WRITER_USER)
+            - --loginPwd
+            - $(WRITER_PASSWORD)
+            {{- if .Values.dbupcommon.userSecrets.reader }}
+            - --ROloginName
+            - $(READ_ONLY_USER)
+            - --ROloginPwd
+            - $(READ_ONLY_PASSWORD)
+            {{- end }}
+            {{- if and .Values.dbInit.data.alterPasswords .Values.dbInit.data.executeDbaScripts }}
+            - --alterPassword
+            {{- end }}
+            {{- if not .Values.dbInit.data.executeDbaScripts }}
+            - --withoutDbaScripts
+            {{- end }}
+            {{- with .Values.dbInit.data.timezone }}
+            - --timezone
+            - '{{ . }}'
+            {{- end }}
+            {{- if and .Values.dbInit.data.dropDb .Values.dbInit.data.executeDbaScripts }}
+            - --dropDb
+            {{- end }}
+            - --executionTimeout
+            - '{{ .Values.dbInit.data.executionTimeout }}'
+            {{- with .Values.dbInit.data.googleLogging }}
+            - --googleProjectId
+            - '{{ .projectId }}'
+            - --googleLogId
+            - '{{ .logId }}'
+            {{- end }}
           env:
-            - name: DBSERVER_COMMON
-              value: {{ .Values.dbupcommon.dbserver_common }}
-            - name: DB_COMMON
-              value: {{ .Values.dbupcommon.db_common }}
-            - name: OWNER
+            {{- with .Values.dbupcommon.userSecrets.admin }}
+            - name: ADMIN_USER
               valueFrom:
                 secretKeyRef:
-                  key: username
-                  name: {{ .Values.externalSecrets.commondbOwner }}
-            - name: OWNER_PASSWORD
+                  key: {{ .username.key }}
+                  name: {{ include "authz.dbSecretName" . | default (include "authz.dbGeneratedSecretName" (dict "root" $ "type" "data" "key" "admin" ) ) }}
+            - name: ADMIN_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  key: password
-                  name: {{ .Values.externalSecrets.commondbOwner }}
-            - name: USER
+                  key: {{ .password.key }}
+                  name: {{ include "authz.dbSecretName" . | default (include "authz.dbGeneratedSecretName" (dict "root" $ "type" "data" "key" "admin" ) ) }}
+            {{- end }}
+            {{- with .Values.dbupcommon.userSecrets.writer }}
+            - name: WRITER_USER
               valueFrom:
                 secretKeyRef:
-                  key: username
-                  name: {{ .Values.externalSecrets.commondbRwUser }}
-            - name: USER_PASSWORD
+                  key: {{ .username.key }}
+                  name: {{ include "authz.dbSecretName" . | default (include "authz.dbGeneratedSecretName" (dict "root" $ "type" "data" "key" "writer" ) ) }}
+            - name: WRITER_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  key: password
-                  name: {{ .Values.externalSecrets.commondbRwUser }}
+                  key: {{ .password.key }}
+                  name: {{ include "authz.dbSecretName" . | default (include "authz.dbGeneratedSecretName" (dict "root" $ "type" "data" "key" "writer" ) ) }}
+            {{- end }}
+            {{- with .Values.dbupcommon.userSecrets.reader }}
             - name: READ_ONLY_USER
               valueFrom:
                 secretKeyRef:
-                  key: username
-                  name: {{ .Values.externalSecrets.commondbRoUser }}
+                  key: {{ .username.key }}
+                  name: {{ include "authz.dbSecretName" . | default (include "authz.dbGeneratedSecretName" (dict "root" $ "type" "data" "key" "reader" ) ) }}
             - name: READ_ONLY_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  key: password
-                  name: {{ .Values.externalSecrets.commondbRoUser }}
-            - name: DBUP_EXTRA_ARGS
-              value: ''
-          image: siscc/dotstatsuite-dbup:{{ .Values.dbupcommon.version }}
-          name: dbup-common
+                  key: {{ .password.key }}
+                  name: {{ include "authz.dbSecretName" . | default (include "authz.dbGeneratedSecretName" (dict "root" $ "type" "data" "key" "reader" ) ) }}
+            {{- end }}
           {{- with .Values.dbupcommon.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           securityContext:
-            runAsUser: 65534
-            runAsGroup: 65534
-            runAsNonRoot: true
-            allowPrivilegeEscalation: false
-            privileged: false
-            readOnlyRootFilesystem: true
-            capabilities:
-              drop:
-                - all          
+            {{- toYaml .Values.dbupcommon.securityContext | nindent 12 }}
           volumeMounts:
             - mountPath: /tmp
               name: tmp
-            - mountPath: /etc/ssl/certs/{{ .Values.certName }}.pem
-              name: {{ .Values.certName }}
-              subPath: ca.crt
+          {{- with .Values.dbInit.data.volumeMounts }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
       restartPolicy: Never
       volumes:
         - name: tmp
           emptyDir: {}      
-        - configMap:
-            name: {{ .Values.certName }}
-          name: {{ .Values.certName }}
+        {{- with .Values.volumes }}
+          {{- toYaml . | nindent 10 }}
+        {{- end }}

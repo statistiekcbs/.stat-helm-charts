@@ -176,9 +176,23 @@ probedb:
 
 dbupcommon:
   annotaions: {}
-  version: v31.0.0
-  dbserver_common: "-override-"
-  db_common: "-override-"
+  image:
+    repository: siscc/dotstatsuite-dbup
+    tag: v31.0.0
+  podSecurityContext:
+    fsGroup: 65534
+    seccompProfile:
+      type: RuntimeDefault
+  securityContext:
+    runAsUser: 65534
+    runAsGroup: 65534
+    runAsNonRoot: true
+    allowPrivilegeEscalation: false
+    privileged: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop:
+        - all
   resources:
     requests:
       memory: 100Mi
@@ -186,6 +200,275 @@ dbupcommon:
     limits:
       memory: 100Mi
       cpu: 200m
+
+  # -- Server URL
+  serverHostname: ""
+  serverPort: 1433
+  # -- Database name
+  dbName: ""
+  userSecrets:
+    admin:
+      # -- Secret name for username and password
+      name: ""
+      # -- Set to true to use an external
+      # When using an external secret , the secret name is generated
+      isExternal: false
+      annotations: {}
+      username:
+        # -- The username secret key
+        key: ""
+        # -- When using an external secret, remoteRef.key is required
+        # If remoteRef.property is not set, username.key is used
+        remoteRef:
+          key: ""
+      password:
+        # -- The password secret key
+        key: ""
+        # -- When using an external secret, remoteRef.key is required
+        # If remoteRef.property is not set, password.key is used
+        remoteRef:
+          key: ""
+      # -- When using an external secret, secretStoreRef.name is required
+      secretStoreRef:
+        name: ""
+        # kind: ClusterSecretStore
+      # When using an external secret, if target.name is not set, the generated
+      # seret name will be used
+      # target:
+      #   creationPolicy: Owner
+      #   deletionPolicy: Retain
+      #   name: ""
+      # refreshInterval: 24h
+
+      # -- Additional parameters for admin connection string
+      additionalParams: []
+    writer:
+      # -- Secret name for username and password
+      name: ""
+      # -- Set to true to use an external
+      # When using an external secret , the secret name is generated
+      isExternal: false
+      annotations: {}
+      username:
+        # -- The username secret key
+        key: ""
+        # -- When using an external secret, remoteRef.key is required
+        # If remoteRef.property is not set, username.key is used
+        remoteRef:
+          key: ""
+      password:
+        # -- The password secret key
+        key: ""
+        # -- When using an external secret, remoteRef.key is required
+        # If remoteRef.property is not set, password.key is used
+        remoteRef:
+          key: ""
+      # -- When using an external secret, secretStoreRef.name is required
+      secretStoreRef:
+        name: ""
+        # kind: ClusterSecretStore
+      # When using an external secret, if target.name is not set, the generated
+      # seret name will be used
+      # target:
+      #   creationPolicy: Owner
+      #   deletionPolicy: Retain
+      #   name: ""
+      # refreshInterval: 24h
+
+      # -- Additional parameters for writer connection string
+      additionalParams: []
+    reader: {}
+
+  additionalParams: []
+
+dbInit:
+  structure:
+    # -- Enable structure database init job
+    enabled: false
+
+    # -- Roll deployment on job change
+    rollDeployment: false
+
+    podSecurityContext: {}
+
+    annotations:
+      {}
+      # argocd.argoproj.io/hook: PreSync
+      # argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+
+    image:
+      repository: siscc/dotstatsuite-dbup
+      pullPolicy: IfNotPresent
+      # -- Overrides the image tag whose default is the chart appVersion.
+      tag: "v31.0.0"
+
+    # -- The DBA scripts are not executed: it will not create logins / users, won't
+    # put the DB in restricted mode while running
+    executeDbaScripts: true
+    # -- Drops the database before creating it
+    dropDb: false
+    # -- Changes the passwords of existing loginName and ROloginName logins in
+    # database
+    alterPasswords: false
+    # -- Optional. When provided, uses the given value (name of the time zone)
+    # instead of trying to determine it in the related sql script(s). Should be
+    # used in cases when the stored procedure [MASTER].[dbo.xp_regread] cannot
+    # be executed.
+    timezone: ""
+    # -- The execution timeout in minutes
+    executionTimeout: 30
+
+    googleLogging:
+      {}
+      # Google.Cloud logging projectId
+      # projectId: ""
+      # Google.Cloud logging logId
+      # logId: DbUp
+
+    securityContext:
+      {}
+      # readOnlyRootFilesystem: true
+      # allowPrivilegeEscalation: false
+      # privileged: false
+      # capabilities:
+      #   drop:
+      #   - all
+      # runAsGroup: 1654
+      # runAsUser: 1654
+      # runAsNonRoot: true
+
+    resources:
+      {}
+      # requests:
+      #   cpu: 100m
+      #   memory: 50Mi
+      # limits:
+      #   cpu: 500m
+      #   memory: 100Mi
+
+    volumeMounts: []
+
+    maapiContainer:
+      image:
+        repository: siscc/sdmxri-nsi-maapi
+        pullPolicy: IfNotPresent
+        # -- Overrides the image tag whose default is the chart appVersion.
+        tag: ""
+
+      command:
+        # -- Override the default start comman of the maapi initContainer
+        commandOverride: []
+        # -- Specifies de DB connection alias to be use bij the maapi tool. Usually
+        # should not be changed
+        dbAlias: nsiws-struct-db
+        # -- Specifies if the mapping store database should reset (true) or persist
+        # (false) all the changes done to the artifacts, when the container is
+        # restarted.
+        resetStructureDb: false
+        # -- Specifies the mapping store database version to be used, if not the latest
+        # is required. Use this parameter only when you know what you are doing.
+        dbVersion: "7.7"
+
+      # -- Additional environment variables
+      env: []
+
+      securityContext:
+        {}
+        # readOnlyRootFilesystem: true
+        # allowPrivilegeEscalation: false
+        # privileged: false
+        # capabilities:
+        #   drop:
+        #   - all
+        # runAsGroup: 1654
+        # runAsUser: 1654
+        # runAsNonRoot: true
+
+      resources:
+        {}
+        # We usually recommend not to specify default resources and to leave this as a conscious
+        # choice for the user. This also increases chances charts run on environments with little
+        # resources, such as Minikube. If you do want to specify resources, uncomment the following
+        # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+        # limits:
+        #   cpu: 100m
+        #   memory: 128Mi
+        # requests:
+        #   cpu: 100m
+        #   memory: 128Mi
+
+      volumeMounts:
+        []
+        # - name: foo
+        #   mountPath: "/etc/foo"
+        #   readOnly: true
+
+  data:
+    # -- Enable structure database init job
+    enabled: false
+
+    # -- Roll deployment on job change
+    rollDeployment: false
+
+    podSecurityContext: {}
+
+    annotations:
+      {}
+      # argocd.argoproj.io/hook: PreSync
+      # argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+
+    image:
+      repository: siscc/dotstatsuite-dbup
+      pullPolicy: IfNotPresent
+      # -- Overrides the image tag whose default is the chart appVersion.
+      tag: "v31.0.0"
+
+    # -- The DBA scripts are not executed: it will not create logins / users, won't
+    # put the DB in restricted mode while running
+    executeDbaScripts: true
+    # -- Drops the database before creating it
+    dropDb: false
+    # -- Changes the passwords of existing loginName and ROloginName logins in
+    # database
+    alterPasswords: false
+    # -- Optional. When provided, uses the given value (name of the time zone)
+    # instead of trying to determine it in the related sql script(s). Should be
+    # used in cases when the stored procedure [MASTER].[dbo.xp_regread] cannot
+    # be executed.
+    timezone: ""
+    # -- The execution timeout in minutes
+    executionTimeout: 30
+
+    googleLogging:
+      {}
+      # Google.Cloud logging projectId
+      # projectId: ""
+      # Google.Cloud logging logId
+      # logId: DbUp
+
+    securityContext:
+      {}
+      # readOnlyRootFilesystem: true
+      # allowPrivilegeEscalation: false
+      # privileged: false
+      # capabilities:
+      #   drop:
+      #   - all
+      # runAsGroup: 1654
+      # runAsUser: 1654
+      # runAsNonRoot: true
+
+    resources:
+      {}
+      # requests:
+      #   cpu: 100m
+      #   memory: 50Mi
+      # limits:
+      #   cpu: 500m
+      #   memory: 100Mi
+
+    volumeMounts: []
+
 # Additional volumes on the output Deployment definition.
 volumes: []
   # - name: foo

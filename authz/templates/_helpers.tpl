@@ -60,3 +60,23 @@ Create the name of the service account to use
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
 {{- end }}
+
+{{/*
+Create the name of the DB external secret
+*/}}
+{{- define "authz.dbGeneratedSecretName" -}}
+{{- printf "%s-%s-%s" (include "authz.fullname" .root ) .type .key }}
+{{- end }}
+
+{{/*
+Returns the secret name of a database credential secret
+*/}}
+{{- define "authz.dbSecretName" -}}
+{{- if .isExternal -}}
+  {{- if and .target .target.name -}}
+    {{- .target.name  }}
+  {{- end -}}
+{{- else -}}
+  {{ .name }}
+{{- end -}}
+{{- end }}
