@@ -602,6 +602,24 @@ application:
 # -- Additional environment variables
 env: []
 
+livenessProbe:
+  failureThreshold: 3
+  httpGet:
+    path: /live
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 3
+readinessProbe:
+  failureThreshold: 3
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 30
+  timeoutSeconds: 5
+startupProbe: {}
+
 securityContext:
   {}
   # readOnlyRootFilesystem: true
