@@ -39,7 +39,7 @@ Secrets and monitoring probes for the application itself and the databases.
 | application.appSettings.authorization.method | string | `"dotstat.webapi"` | authorization uses .Stat Suite's authorization rules. The default value for this docker image is dotstat, which normally should not be changed. https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-sdmxri-nsi-ws/-/blob/develop/README.md |
 | application.appSettings.autoDeleteMappingSets | bool | `true` | Specifies if NSI WS should also delete related mapping sets upon deletion of a dataflow. The default value for this docker image is true, which normally should not be changed. https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-sdmxri-nsi-ws/-/blob/develop/README.md |
 | application.appSettings.categorisation.createStubCategory | string | `"false"` | There is a feature to create a stub Category for any missing categories when it imports a SDMX v2.1 Categorisation or SDMX v2.0 Dataflow/Metadataflow with CategoryReference. By default this feature is working and to disable it the value categorisation. createStubCategory must be set to false or the setting file must be removed. https://gitlab.com/sis-cc/eurostat-sdmx-ri/nsiws.net.mirrored/-/blob/master/doc/CONFIGURATION.md |
-| application.appSettings.clientRateLimitPolicies.clientRules | string | `nil` |  |
+| application.appSettings.clientRateLimitPolicies.clientRules | list | `[]` |  |
 | application.appSettings.clientRateLimiting.clientIdHeader | string | `"X-ClientId"` |  |
 | application.appSettings.clientRateLimiting.enableEndpointRateLimiting | bool | `false` |  |
 | application.appSettings.clientRateLimiting.enabled | bool | `false` |  |

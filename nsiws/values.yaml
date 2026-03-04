@@ -535,7 +535,7 @@ application:
           limit: 10
 
     clientRateLimitPolicies:
-      clientRules:
+      clientRules: []
         # - clientId: "Client1"
         #   rules:
         #     endpoint: "*"
