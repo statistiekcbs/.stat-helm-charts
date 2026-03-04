@@ -83,10 +83,27 @@ securityContext:
 
 # This is for setting up a service more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/
 service:
-  # This sets the service type more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types
+  annotations: {}
   type: ClusterIP
-  # This sets the ports more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#field-spec-ports
   port: 8080
+
+ingress:
+  enabled: false
+  className: ""
+  annotations:
+    {}
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+  hosts:
+    - host: chart-example.local
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls:
+    []
+    # - secretName: chart-example-tls
+    #   hosts:
+    #     - chart-example.local
 
 env:
   autoLogToGoogle: false
@@ -115,27 +132,49 @@ auth:
 # Requires Gateway API resources and suitable controller installed within the cluster
 # (see: https://gateway-api.sigs.k8s.io/guides/)
 httpRoute:
-  # HTTPRoute enabled.
-  enabled: true
-  # HTTPRoute annotations.
+  # -- enables the creation of an HTTPRoute
+  enabled: false
+
+  # -- Add annotations to the route
   annotations: {}
-  # Which Gateways this Route is attached to.
-  parentRefs:
-  - group: gateway.networking.k8s.io
-    kind: Gateway
-    name: kong
-    namespace: "-override-"
-  # Hostnames matching HTTP header.
+
+  # -- A least one parentRef is required
+  parentRefs: []
+
+  # -- Hostnames to match the route
   hostnames: []
-  # List of rules and filters applied.
-  rules:
-  - matches:
+
+  # -- Defines filters for the default backend
+  serviceBackendFilters: []
+
+  # -- Defines what the default service backend matches
+  serviceBackendMatches:
     - path:
         type: PathPrefix
-        value: "/"
-    backendRefs:
-    - name: authz-clip
-      port: 80
+        value: /
+
+  # -- Defines addional rules
+  additionalRules: []
+
+networkPolicies:
+  # -- Enables the deployment of network policies
+  # You can use YAML anchors to refer to other parts of the values file, like
+  # the service port for example
+  # https://helm.sh/docs/chart_template_guide/yaml_techniques/#yaml-anchors
+  enabled: false
+
+  # -- Enable ingress network policies
+  enableIngress: true
+
+  # -- The list selectors allowed to acces the pod on the http port
+  httpSelectors:
+    []
+    # - namespaceSelector:
+    #     matchLabels:
+    #       kubernetes.io/metadata.name: namespace-name
+    #   podSelector:
+    #     matchLabels:
+    #       label: value
 
 resources:
   # We usually recommend not to specify default resources and to leave this as a conscious
@@ -178,18 +217,30 @@ livenessProbe:
 
 #These are the values for the prometheus probe
 probe:
-  labels: {}
-  interval: 30s
-  module: http_2xx
-  prober:
-    path: /probe
-    url: "-override-"
-  targets:
-    staticConfig:
-      labels:
-        probe: authz      
-      static:
-        - "-override-"
+  # -- Enables an HTTP probe
+  enabled: false
+  # -- Probe interval
+  interval: "30s"
+  # -- Label to get picked up by the monitoring stack
+  # @default -- release: rancher-monitoring
+  selectorLabel: ""
+  # -- Additional labels to add to the probe and prometheus metric
+  extraLabels: {}
+  # -- Name of the module to use for probing
+  module: "http_2xx"
+  # -- URL of the prober (blackbox exporter)
+  proberUrl: ""
+  # -- Path used by the prober
+  proberPath: "/probe"
+  # -- Value of the "probe" label, defaults to the probe resource name
+  probeLabel: ""
+  # -- Metric relabeling
+  relabelings: []
+    # - sourceLabels: 
+    #   targetLabel:
+  # -- URLs to probe, usually the HTTPRoute or Ingress hostnames
+  urls: []
+
 
 probedb:
   labels: {}

@@ -1,20 +1,39 @@
+{{- with .Values.probe }}
+{{- if .enabled }}
+{{- $fullName := include "authz.fullname" $ -}}
 apiVersion: monitoring.coreos.com/v1
 kind: Probe
 metadata:
-  {{- with .Values.probe.labels }}
+  name: {{ $fullName }}
   labels:
+    {{- include "authz.labels" $ | nindent 4 }}
+    {{- /*
+    see: "Prometheus" CRD (rancher-monitoring-prometheus), spec.probeSelector.matchLabels
+    */}}
+    {{ .selectorLabel | default "release: rancher-monitoring" }}
+    {{- with .extraLabels }}
     {{- toYaml . | nindent 4 }}
-  {{- end }}
-  name: {{ include "authz.fullname" . }}
-spec:
-  interval: {{ .Values.probe.interval }}
-  module: {{ .Values.probe.module }}
-  prober:
-    {{- with .Values.probe.prober }}
-      {{- toYaml . | nindent 4 }}
     {{- end }}
+spec:
+  interval: {{ .interval | default "30s" }}
+  module: {{ .module | default "http_2xx" }}
+  prober:
+    path: {{ .proberPath | default "/probe" | quote }}
+    url: {{ .proberUrl | quote }}
   targets:
-    {{- with .Values.probe.targets.staticConfig }}    
     staticConfig:
-          {{- toYaml . | nindent 6 }}
+      labels:
+        probe: {{ .probeLabel | default $fullName }}
+        {{- with .extraLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .relabelings }}
+      relabelingConfigs:
+        {{- toYaml . | nindent 8 }}
       {{- end }}
+      static:
+        {{- range .urls }}
+        - {{ . | quote }}
+        {{- end }}
+{{- end }}
+{{- end }}
