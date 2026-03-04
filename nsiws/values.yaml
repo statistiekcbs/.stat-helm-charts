@@ -389,6 +389,21 @@ application:
       # normally should not be changed.
       # https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-sdmxri-nsi-ws/-/blob/develop/README.md
       PrincipalFrom: context
+      # -- Maximum time a single outbound request is allowed to run before it is
+      # cancelled. Default in .NET is 100.
+      RequestTimeoutSeconds: 10
+      # -- Maximum number of concurrent TCP connections HttpClient will open to
+      # the same downstream server. Default in .NET is int.MaxValue.
+      MaxConnectionsPerServer: 100
+      # -- The timespan to wait before the connection establishing times out.
+      # Default in .NET is infinite.
+      ConnectTimeoutSeconds: 5
+      # -- The maximum time for a connection to be in the pool. Default in .NET
+      # is infinite.
+      PooledConnectionLifetimeMinutes: 5
+      # -- The maximum idle time for a connection in the pool. Default in .NET
+      # is 1 minute.
+      PooledConnectionIdleTimeoutMinutes: 1
     mappingStore:
       Id:
         # -- The unique identifier of the data space of the NSI WS instance (also
@@ -521,16 +536,16 @@ application:
 
     clientRateLimitPolicies:
       clientRules:
-        - clientId: "Client1"
-          rules:
-            endpoint: "*"
-            period: "1m"
-            limit: 1
-        - clientId: "Client2"
-          rules:
-            endpoint: "*"
-            period: "1m"
-            limit: 3
+        # - clientId: "Client1"
+        #   rules:
+        #     endpoint: "*"
+        #     period: "1m"
+        #     limit: 1
+        # - clientId: "Client2"
+        #   rules:
+        #     endpoint: "*"
+        #     period: "1m"
+        #     limit: 3
 
     # Request limiting
     requestLimit:
@@ -716,7 +731,7 @@ dbInit:
         resetStructureDb: false
         # -- Specifies the mapping store database version to be used, if not the latest
         # is required. Use this parameter only when you know what you are doing.
-        dbVersion: "7.7"
+        dbVersion: "7.10"
 
       # -- Additional environment variables
       env: []

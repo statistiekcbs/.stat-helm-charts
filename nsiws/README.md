@@ -1,6 +1,6 @@
 # nsiws
 
-![Version: 9.0.0](https://img.shields.io/badge/Version-9.0.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 10.9.0](https://img.shields.io/badge/AppVersion-10.9.0-informational?style=flat-square)
+![Version: 10.0.0](https://img.shields.io/badge/Version-10.0.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 10.11.2](https://img.shields.io/badge/AppVersion-10.11.2-informational?style=flat-square)
 
 A Helm chart for the .Stat NSI web service.
 
@@ -28,20 +28,18 @@ Secrets and monitoring probes for the application itself and the databases.
 | application.appSettings.GoogleLogLevel | string | `"DEBUG"` | One of (DEBUG,INFO,ERROR). Default = DEBUG https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-sdmxri-nsi-ws/-/blob/develop/README.md |
 | application.appSettings.GoogleProjectId | bool | `true` | Google.Cloud logging projectId, required only if AutoLog2Google=true https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-sdmxri-nsi-ws/-/blob/develop/README.md |
 | application.appSettings.applyContentConstraintsOnDataQueries | bool | `true` | Specifies if NSI WS should apply allowed content constraints at data retrieval. The default value for this docker image is true, which normally should not be changed. https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-sdmxri-nsi-ws/-/blob/develop/README.md |
+| application.appSettings.authorization.ConnectTimeoutSeconds | int | `5` | The timespan to wait before the connection establishing times out. Default in .NET is infinite. |
+| application.appSettings.authorization.MaxConnectionsPerServer | int | `100` | Maximum number of concurrent TCP connections HttpClient will open to the same downstream server. Default in .NET is int.MaxValue. |
+| application.appSettings.authorization.PooledConnectionIdleTimeoutMinutes | int | `1` | The maximum idle time for a connection in the pool. Default in .NET is 1 minute. |
+| application.appSettings.authorization.PooledConnectionLifetimeMinutes | int | `5` | The maximum time for a connection to be in the pool. Default in .NET is infinite. |
 | application.appSettings.authorization.PrincipalFrom | string | `"context"` | The principal used at authorization should be taken from context object. The default value for this docker image is context, which normally should not be changed. https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-sdmxri-nsi-ws/-/blob/develop/README.md |
+| application.appSettings.authorization.RequestTimeoutSeconds | int | `10` | Maximum time a single outbound request is allowed to run before it is cancelled. Default in .NET is 100. |
 | application.appSettings.authorization.baseUrl | string | `""` | The BASE URL to the .Stat Suite's Authorization service |
 | application.appSettings.authorization.enabled | bool | `true` | Determines if UserAuthorizationRulesMiddlerwareBuilder is activated for authorization. The default value for this docker image is true, which normally should not be changed. https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-sdmxri-nsi-ws/-/blob/develop/README.md |
 | application.appSettings.authorization.method | string | `"dotstat.webapi"` | authorization uses .Stat Suite's authorization rules. The default value for this docker image is dotstat, which normally should not be changed. https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-sdmxri-nsi-ws/-/blob/develop/README.md |
 | application.appSettings.autoDeleteMappingSets | bool | `true` | Specifies if NSI WS should also delete related mapping sets upon deletion of a dataflow. The default value for this docker image is true, which normally should not be changed. https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-sdmxri-nsi-ws/-/blob/develop/README.md |
 | application.appSettings.categorisation.createStubCategory | string | `"false"` | There is a feature to create a stub Category for any missing categories when it imports a SDMX v2.1 Categorisation or SDMX v2.0 Dataflow/Metadataflow with CategoryReference. By default this feature is working and to disable it the value categorisation. createStubCategory must be set to false or the setting file must be removed. https://gitlab.com/sis-cc/eurostat-sdmx-ri/nsiws.net.mirrored/-/blob/master/doc/CONFIGURATION.md |
-| application.appSettings.clientRateLimitPolicies.clientRules[0].clientId | string | `"Client1"` |  |
-| application.appSettings.clientRateLimitPolicies.clientRules[0].rules.endpoint | string | `"*"` |  |
-| application.appSettings.clientRateLimitPolicies.clientRules[0].rules.limit | int | `1` |  |
-| application.appSettings.clientRateLimitPolicies.clientRules[0].rules.period | string | `"1m"` |  |
-| application.appSettings.clientRateLimitPolicies.clientRules[1].clientId | string | `"Client2"` |  |
-| application.appSettings.clientRateLimitPolicies.clientRules[1].rules.endpoint | string | `"*"` |  |
-| application.appSettings.clientRateLimitPolicies.clientRules[1].rules.limit | int | `3` |  |
-| application.appSettings.clientRateLimitPolicies.clientRules[1].rules.period | string | `"1m"` |  |
+| application.appSettings.clientRateLimitPolicies.clientRules | string | `nil` |  |
 | application.appSettings.clientRateLimiting.clientIdHeader | string | `"X-ClientId"` |  |
 | application.appSettings.clientRateLimiting.enableEndpointRateLimiting | bool | `false` |  |
 | application.appSettings.clientRateLimiting.enabled | bool | `false` |  |
@@ -237,7 +235,7 @@ Secrets and monitoring probes for the application itself and the databases.
 | dbInit.structure.image.tag | string | `"v31.0.0"` | Overrides the image tag whose default is the chart appVersion. |
 | dbInit.structure.maapiContainer.command.commandOverride | list | `[]` | Override the default start comman of the maapi initContainer |
 | dbInit.structure.maapiContainer.command.dbAlias | string | `"nsiws-struct-db"` | Specifies de DB connection alias to be use bij the maapi tool. Usually should not be changed |
-| dbInit.structure.maapiContainer.command.dbVersion | string | `"7.7"` | Specifies the mapping store database version to be used, if not the latest is required. Use this parameter only when you know what you are doing. |
+| dbInit.structure.maapiContainer.command.dbVersion | string | `"7.10"` | Specifies the mapping store database version to be used, if not the latest is required. Use this parameter only when you know what you are doing. |
 | dbInit.structure.maapiContainer.command.resetStructureDb | bool | `false` | Specifies if the mapping store database should reset (true) or persist (false) all the changes done to the artifacts, when the container is restarted. |
 | dbInit.structure.maapiContainer.env | list | `[]` | Additional environment variables |
 | dbInit.structure.maapiContainer.image.pullPolicy | string | `"IfNotPresent"` |  |
