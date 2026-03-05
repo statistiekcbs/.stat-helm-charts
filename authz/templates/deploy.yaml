@@ -42,19 +42,21 @@ spec:
             - name: ASPNETCORE_URLS
               value: http://+:{{ .Values.service.port }}
             - name: DBSERVER_COMMON
-              value: {{ .Values.dbupcommon.dbserver_common }}
+              value: "{{ .Values.dbInit.common.serverHostname }},{{ .Values.dbInit.common.serverPort }}"
             - name: DB_COMMON
-              value: {{ .Values.dbupcommon.db_common }}
+              value: {{ .Values.dbInit.common.dbName }}
+            {{- with .Values.userSecrets.writer }}
             - name: USER
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.externalSecrets.commondbRwUser }}
-                  key: username
+                  key: {{ .username.key }}
+                  name: {{ include "authz.dbSecretName" . | default (include "authz.dbGeneratedSecretName" (dict "root" $ "type" "data" "key" "writer" ) ) }}
             - name: USER_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.externalSecrets.commondbRwUser }}
-                  key: password
+                  key: {{ .password.key }}
+                  name: {{ include "authz.dbSecretName" . | default (include "authz.dbGeneratedSecretName" (dict "root" $ "type" "data" "key" "writer" ) ) }}
+            {{- end }}
             - name: "DotStatSuiteCoreCommonDbConnectionString"
               value: "Server=$(DBSERVER_COMMON);Database=$(DB_COMMON);User=$(USER);Password=$(USER_PASSWORD);"
             - name: "AutoLog2Google"

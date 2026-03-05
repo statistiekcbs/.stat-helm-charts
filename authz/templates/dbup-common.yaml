@@ -2,7 +2,7 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: {{ include "authz.fullname" . }}-dbup-common
-  {{- with .Values.dbupcommon.annotations }}
+  {{- with .Values.dbInit.common.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}
@@ -11,9 +11,9 @@ spec:
   template:
     spec:
       securityContext:
-        {{- toYaml .Values.dbupcommon.podSecurityContext | nindent 8 }}
+        {{- toYaml .Values.dbInit.common.podSecurityContext | nindent 8 }}
       containers:
-        - image: {{ .Values.dbupcommon.image.repository }}:{{ .Values.dbupcommon.image.tag }}
+        - image: {{ .Values.dbInit.common.image.repository }}:{{ .Values.dbInit.common.image.tag }}
           name: dbup-common 
           command:
             - dotnet
@@ -23,42 +23,46 @@ spec:
             - --force
             - --commonDb
             - --connectionString 
-            {{- $addParams := join ";" (append .Values.dbupcommon.additionalParams "") }}
-            {{- $addUserParams := join ";" .Values.dbupcommon.userSecrets.admin.additionalParams }}
-            - Server={{ .Values.dbupcommon.serverHostname }},{{ .Values.dbupcommon.serverPort }};Database={{ .Values.dbupcommon.dbName }};User=$(ADMIN_USER);Password=$(ADMIN_PASSWORD);{{ $addParams }}{{ $addUserParams }}
+            {{- $addParams := join ";" (append .Values.dbInit.common.additionalParams "") }}
+            {{- $addUserParams := join ";" .Values.userSecrets.admin.additionalParams }}
+            - Server={{ .Values.dbInit.common.serverHostname }},{{ .Values.dbInit.common.serverPort }};Database={{ .Values.dbInit.common.dbName }};User=$(ADMIN_USER);Password=$(ADMIN_PASSWORD);{{ $addParams }}{{ $addUserParams }}
             - --loginName
             - $(WRITER_USER)
             - --loginPwd
             - $(WRITER_PASSWORD)
-            {{- if .Values.dbupcommon.userSecrets.reader }}
+            {{- if .Values.userSecrets.reader }}
             - --ROloginName
             - $(READ_ONLY_USER)
             - --ROloginPwd
             - $(READ_ONLY_PASSWORD)
             {{- end }}
-            {{- if and .Values.dbInit.data.alterPasswords .Values.dbInit.data.executeDbaScripts }}
+            {{- if and .Values.dbInit.common.alterPasswords .Values.dbInit.common.executeDbaScripts }}
             - --alterPassword
             {{- end }}
-            {{- if not .Values.dbInit.data.executeDbaScripts }}
+            {{- if not .Values.dbInit.common.executeDbaScripts }}
             - --withoutDbaScripts
             {{- end }}
-            {{- with .Values.dbInit.data.timezone }}
+            {{- with .Values.dbInit.common.timezone }}
             - --timezone
             - '{{ . }}'
             {{- end }}
-            {{- if and .Values.dbInit.data.dropDb .Values.dbInit.data.executeDbaScripts }}
+            {{- if and .Values.dbInit.common.dropDb .Values.dbInit.common.executeDbaScripts }}
             - --dropDb
             {{- end }}
             - --executionTimeout
-            - '{{ .Values.dbInit.data.executionTimeout }}'
-            {{- with .Values.dbInit.data.googleLogging }}
+            - '{{ .Values.dbInit.common.executionTimeout }}'
+            {{- with .Values.dbInit.common.googleLogging }}
             - --googleProjectId
             - '{{ .projectId }}'
             - --googleLogId
             - '{{ .logId }}'
             {{- end }}
           env:
-            {{- with .Values.dbupcommon.userSecrets.admin }}
+            - name: DBSERVER_COMMON
+              value: "{{ .Values.dbInit.common.serverHostname }},{{ .Values.dbInit.common.serverPort }}"
+            - name: DB_COMMON
+              value: {{ .Values.dbInit.common.dbName }}
+            {{- with .Values.userSecrets.admin }}
             - name: ADMIN_USER
               valueFrom:
                 secretKeyRef:
@@ -70,7 +74,7 @@ spec:
                   key: {{ .password.key }}
                   name: {{ include "authz.dbSecretName" . | default (include "authz.dbGeneratedSecretName" (dict "root" $ "type" "data" "key" "admin" ) ) }}
             {{- end }}
-            {{- with .Values.dbupcommon.userSecrets.writer }}
+            {{- with .Values.userSecrets.writer }}
             - name: WRITER_USER
               valueFrom:
                 secretKeyRef:
@@ -82,7 +86,7 @@ spec:
                   key: {{ .password.key }}
                   name: {{ include "authz.dbSecretName" . | default (include "authz.dbGeneratedSecretName" (dict "root" $ "type" "data" "key" "writer" ) ) }}
             {{- end }}
-            {{- with .Values.dbupcommon.userSecrets.reader }}
+            {{- with .Values.userSecrets.reader }}
             - name: READ_ONLY_USER
               valueFrom:
                 secretKeyRef:
@@ -94,16 +98,16 @@ spec:
                   key: {{ .password.key }}
                   name: {{ include "authz.dbSecretName" . | default (include "authz.dbGeneratedSecretName" (dict "root" $ "type" "data" "key" "reader" ) ) }}
             {{- end }}
-          {{- with .Values.dbupcommon.resources }}
+          {{- with .Values.dbInit.common.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           securityContext:
-            {{- toYaml .Values.dbupcommon.securityContext | nindent 12 }}
+            {{- toYaml .Values.dbInit.common.securityContext | nindent 12 }}
           volumeMounts:
             - mountPath: /tmp
               name: tmp
-          {{- with .Values.dbInit.data.volumeMounts }}
+          {{- with .Values.dbInit.common.volumeMounts }}
             {{- toYaml . | nindent 12 }}
           {{- end }}
       restartPolicy: Never

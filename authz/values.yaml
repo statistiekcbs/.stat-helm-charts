@@ -18,35 +18,11 @@ imagePullSecrets: []
 # This is to override the chart name.
 nameOverride: ""
 fullnameOverride: ""
-certName: cbsp-trusted-certs
 
-# This section builds out the service account more information can be found here: https://kubernetes.io/docs/concepts/security/service-accounts/
-serviceAccount:
-  # Specifies whether a service account should be created.
-  create: true
-  # Automatically mount a ServiceAccount's API credentials?
-  automount: true
-  # Annotations to add to the service account.
-  annotations: {}
-  # The name of the service account to use.
-  # If not set and create is true, a name is generated using the fullname template.
-  name: ""
-
-# This is for setting Kubernetes Annotations to a Pod.
-# For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
-podAnnotations: 
-  # since we log with OTEL - exclude the logs in fluentbit
-  # TODO: Redo annotaions
-  instrumentation.opentelemetry.io/otel-dotnet-auto-runtime: linux-musl-x64
-  instrumentation.opentelemetry.io/inject-dotnet: opentelemetry-operator-tst/instrumentation
-  fluentbit.io/exclude: "true"
-# This is for setting Kubernetes Labels to a Pod.
-# For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
+podAnnotations: {}
 podLabels: {}
 
-podSecurityContext: 
-  seccompProfile:
-    type: RuntimeDefault
+podSecurityContext: {}
 
 topologySpreadConstraints:
 - maxSkew: 1
@@ -55,31 +31,7 @@ topologySpreadConstraints:
   labelSelector:
     matchLabels: {}
 
-# These contains the names of the externalSecrets, each in the form username/password
-externalSecrets:
-  annotaions: {}
-  refreshInterval: 24h
-  commondbOwner: 
-    name: commondb-owner
-    path: workload01/accounts/mssql/common/owner
-  commondbRwUser: 
-    name: commondb-rw-user
-    path: workload01/accounts/mssql/common/rw
-  commondbRoUser:
-    name: commondb-ro-user
-    path: workload01/accounts/mssql/common/ro
-  vaultName: vault-backend-cbs-workloads
-
-securityContext:
-  runAsNonRoot: true
-  runAsUser: 65534
-  runAsGroup: 65534
-  allowPrivilegeEscalation: false
-  privileged: false
-  readOnlyRootFilesystem: true
-  capabilities:
-    drop:
-      - all
+securityContext: {}
 
 # This is for setting up a service more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/
 service:
@@ -176,17 +128,7 @@ networkPolicies:
     #     matchLabels:
     #       label: value
 
-resources:
-  # We usually recommend not to specify default resources and to leave this as a conscious
-  # choice for the user. This also increases chances charts run on environments with little
-  # resources, such as Minikube. If you do want to specify resources, uncomment the following
-  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
-  requests:
-    memory: 250Mi
-    cpu: 5m
-  limits:
-    memory: 250Mi
-    cpu: 100m
+resources: {}
 
 # This is to setup the liveness and readiness probes more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
 startupProbe:
@@ -269,162 +211,116 @@ probedb:
   # -- URLs to probe, usually the HTTPRoute or Ingress hostnames
   urls: []
 
-dbupcommon:
-  annotaions: {}
-  image:
-    repository: siscc/dotstatsuite-dbup
-    tag: v31.0.0
-  podSecurityContext:
-    fsGroup: 65534
-    seccompProfile:
-      type: RuntimeDefault
-  securityContext:
-    runAsUser: 65534
-    runAsGroup: 65534
-    runAsNonRoot: true
-    allowPrivilegeEscalation: false
-    privileged: false
-    readOnlyRootFilesystem: true
-    capabilities:
-      drop:
-        - all
-  resources:
-    requests:
-      memory: 100Mi
-      cpu: 25m
-    limits:
-      memory: 100Mi
-      cpu: 200m
-
-  # -- Server URL
-  serverHostname: ""
-  serverPort: 1433
-  # -- Database name
-  dbName: ""
-  userSecrets:
-    admin:
-      # -- Secret name for username and password
+userSecrets:
+  admin:
+    # -- Secret name for username and password
+    name: ""
+    # -- Set to true to use an external
+    # When using an external secret , the secret name is generated
+    isExternal: false
+    annotations: {}
+    username:
+      # -- The username secret key
+      key: ""
+      # -- When using an external secret, remoteRef.key is required
+      # If remoteRef.property is not set, username.key is used
+      remoteRef:
+        key: ""
+    password:
+      # -- The password secret key
+      key: ""
+      # -- When using an external secret, remoteRef.key is required
+      # If remoteRef.property is not set, password.key is used
+      remoteRef:
+        key: ""
+    # -- When using an external secret, secretStoreRef.name is required
+    secretStoreRef:
       name: ""
-      # -- Set to true to use an external
-      # When using an external secret , the secret name is generated
-      isExternal: false
-      annotations: {}
-      username:
-        # -- The username secret key
-        key: ""
-        # -- When using an external secret, remoteRef.key is required
-        # If remoteRef.property is not set, username.key is used
-        remoteRef:
-          key: ""
-      password:
-        # -- The password secret key
-        key: ""
-        # -- When using an external secret, remoteRef.key is required
-        # If remoteRef.property is not set, password.key is used
-        remoteRef:
-          key: ""
-      # -- When using an external secret, secretStoreRef.name is required
-      secretStoreRef:
-        name: ""
-        # kind: ClusterSecretStore
-      # When using an external secret, if target.name is not set, the generated
-      # seret name will be used
-      # target:
-      #   creationPolicy: Owner
-      #   deletionPolicy: Retain
-      #   name: ""
-      # refreshInterval: 24h
+      # kind: ClusterSecretStore
+    # When using an external secret, if target.name is not set, the generated
+    # seret name will be used
+    # target:
+    #   creationPolicy: Owner
+    #   deletionPolicy: Retain
+    #   name: ""
+    # refreshInterval: 24h
 
-      # -- Additional parameters for admin connection string
-      additionalParams: []
-    writer:
-      # -- Secret name for username and password
+    # -- Additional parameters for admin connection string
+    additionalParams: []
+  writer:
+    # -- Secret name for username and password
+    name: ""
+    # -- Set to true to use an external
+    # When using an external secret , the secret name is generated
+    isExternal: false
+    annotations: {}
+    username:
+      # -- The username secret key
+      key: ""
+      # -- When using an external secret, remoteRef.key is required
+      # If remoteRef.property is not set, username.key is used
+      remoteRef:
+        key: ""
+    password:
+      # -- The password secret key
+      key: ""
+      # -- When using an external secret, remoteRef.key is required
+      # If remoteRef.property is not set, password.key is used
+      remoteRef:
+        key: ""
+    # -- When using an external secret, secretStoreRef.name is required
+    secretStoreRef:
       name: ""
-      # -- Set to true to use an external
-      # When using an external secret , the secret name is generated
-      isExternal: false
-      annotations: {}
-      username:
-        # -- The username secret key
-        key: ""
-        # -- When using an external secret, remoteRef.key is required
-        # If remoteRef.property is not set, username.key is used
-        remoteRef:
-          key: ""
-      password:
-        # -- The password secret key
-        key: ""
-        # -- When using an external secret, remoteRef.key is required
-        # If remoteRef.property is not set, password.key is used
-        remoteRef:
-          key: ""
-      # -- When using an external secret, secretStoreRef.name is required
-      secretStoreRef:
-        name: ""
-        # kind: ClusterSecretStore
-      # When using an external secret, if target.name is not set, the generated
-      # seret name will be used
-      # target:
-      #   creationPolicy: Owner
-      #   deletionPolicy: Retain
-      #   name: ""
-      # refreshInterval: 24h
+      # kind: ClusterSecretStore
+    # When using an external secret, if target.name is not set, the generated
+    # seret name will be used
+    # target:
+    #   creationPolicy: Owner
+    #   deletionPolicy: Retain
+    #   name: ""
+    # refreshInterval: 24h
 
-      # -- Additional parameters for writer connection string
-      additionalParams: []
-    reader: 
-      # -- Secret name for username and password
+    # -- Additional parameters for writer connection string
+    additionalParams: []
+  reader: 
+    # -- Secret name for username and password
+    name: ""
+    # -- Set to true to use an external
+    # When using an external secret , the secret name is generated
+    isExternal: false
+    annotations: {}
+    username:
+      # -- The username secret key
+      key: ""
+      # -- When using an external secret, remoteRef.key is required
+      # If remoteRef.property is not set, username.key is used
+      remoteRef:
+        key: ""
+    password:
+      # -- The password secret key
+      key: ""
+      # -- When using an external secret, remoteRef.key is required
+      # If remoteRef.property is not set, password.key is used
+      remoteRef:
+        key: ""
+    # -- When using an external secret, secretStoreRef.name is required
+    secretStoreRef:
       name: ""
-      # -- Set to true to use an external
-      # When using an external secret , the secret name is generated
-      isExternal: false
-      annotations: {}
-      username:
-        # -- The username secret key
-        key: ""
-        # -- When using an external secret, remoteRef.key is required
-        # If remoteRef.property is not set, username.key is used
-        remoteRef:
-          key: ""
-      password:
-        # -- The password secret key
-        key: ""
-        # -- When using an external secret, remoteRef.key is required
-        # If remoteRef.property is not set, password.key is used
-        remoteRef:
-          key: ""
-      # -- When using an external secret, secretStoreRef.name is required
-      secretStoreRef:
-        name: ""
-        # kind: ClusterSecretStore
-      # When using an external secret, if target.name is not set, the generated
-      # seret name will be used
-      # target:
-      #   creationPolicy: Owner
-      #   deletionPolicy: Retain
-      #   name: ""
-      # refreshInterval: 24h
+      # kind: ClusterSecretStore
+    # When using an external secret, if target.name is not set, the generated
+    # seret name will be used
+    # target:
+    #   creationPolicy: Owner
+    #   deletionPolicy: Retain
+    #   name: ""
+    # refreshInterval: 24h
 
-      # -- Additional parameters for writer connection string
-      additionalParams: []
-  
-  probe:
-    enabled: false
-    selectorLabel: ""
-    extraLabels: {}
-    module: tcp_connect
-    interval: 30s
-    proberUrl: ""
-    proberPath: /probe
-    probeLabel: ""
-    relabelings: []
-      # - sourceLabels: 
-      #   targetLabel:
-  
-  additionalParams: []
+    # -- Additional parameters for writer connection string
+    additionalParams: []
+
 
 dbInit:
-  structure:
+  common:
     # -- Enable structure database init job
     enabled: false
 
@@ -443,6 +339,12 @@ dbInit:
       pullPolicy: IfNotPresent
       # -- Overrides the image tag whose default is the chart appVersion.
       tag: "v31.0.0"
+
+    # -- Server URL
+    serverHostname: ""
+    serverPort: 1433
+    # -- Database name
+    dbName: ""
 
     # -- The DBA scripts are not executed: it will not create logins / users, won't
     # put the DB in restricted mode while running
@@ -488,126 +390,7 @@ dbInit:
       #   cpu: 500m
       #   memory: 100Mi
 
-    volumeMounts: []
-
-    maapiContainer:
-      image:
-        repository: siscc/sdmxri-nsi-maapi
-        pullPolicy: IfNotPresent
-        # -- Overrides the image tag whose default is the chart appVersion.
-        tag: ""
-
-      command:
-        # -- Override the default start comman of the maapi initContainer
-        commandOverride: []
-        # -- Specifies de DB connection alias to be use bij the maapi tool. Usually
-        # should not be changed
-        dbAlias: nsiws-struct-db
-        # -- Specifies if the mapping store database should reset (true) or persist
-        # (false) all the changes done to the artifacts, when the container is
-        # restarted.
-        resetStructureDb: false
-        # -- Specifies the mapping store database version to be used, if not the latest
-        # is required. Use this parameter only when you know what you are doing.
-        dbVersion: "7.7"
-
-      # -- Additional environment variables
-      env: []
-
-      securityContext:
-        {}
-        # readOnlyRootFilesystem: true
-        # allowPrivilegeEscalation: false
-        # privileged: false
-        # capabilities:
-        #   drop:
-        #   - all
-        # runAsGroup: 1654
-        # runAsUser: 1654
-        # runAsNonRoot: true
-
-      resources:
-        {}
-        # We usually recommend not to specify default resources and to leave this as a conscious
-        # choice for the user. This also increases chances charts run on environments with little
-        # resources, such as Minikube. If you do want to specify resources, uncomment the following
-        # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
-        # limits:
-        #   cpu: 100m
-        #   memory: 128Mi
-        # requests:
-        #   cpu: 100m
-        #   memory: 128Mi
-
-      volumeMounts:
-        []
-        # - name: foo
-        #   mountPath: "/etc/foo"
-        #   readOnly: true
-
-  data:
-    # -- Enable structure database init job
-    enabled: false
-
-    # -- Roll deployment on job change
-    rollDeployment: false
-
-    podSecurityContext: {}
-
-    annotations:
-      {}
-      # argocd.argoproj.io/hook: PreSync
-      # argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
-
-    image:
-      repository: siscc/dotstatsuite-dbup
-      pullPolicy: IfNotPresent
-      # -- Overrides the image tag whose default is the chart appVersion.
-      tag: "v31.0.0"
-
-    # -- The DBA scripts are not executed: it will not create logins / users, won't
-    # put the DB in restricted mode while running
-    executeDbaScripts: true
-    # -- Drops the database before creating it
-    dropDb: false
-    # -- Changes the passwords of existing loginName and ROloginName logins in
-    # database
-    alterPasswords: false
-    # -- Optional. When provided, uses the given value (name of the time zone)
-    # instead of trying to determine it in the related sql script(s). Should be
-    # used in cases when the stored procedure [MASTER].[dbo.xp_regread] cannot
-    # be executed.
-    timezone: ""
-    # -- The execution timeout in minutes
-    executionTimeout: 30
-
-    googleLogging:
-      {}
-      # Google.Cloud logging projectId
-      # projectId: ""
-      # Google.Cloud logging logId
-      # logId: DbUp
-
-    securityContext:
-      {}
-      # readOnlyRootFilesystem: true
-      # allowPrivilegeEscalation: false
-      # privileged: false
-      # capabilities:
-      #   drop:
-      #   - all
-      # runAsGroup: 1654
-      # runAsUser: 1654
-      # runAsNonRoot: true
-
-    resources:
-      {}
-      # requests:
-      #   cpu: 100m
-      #   memory: 50Mi
-      # limits:
-      #   cpu: 500m
-      #   memory: 100Mi
+    additionalParams: []
 
     volumeMounts: []
 
