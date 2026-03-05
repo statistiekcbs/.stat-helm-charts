@@ -1,0 +1,119 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "authz.fullname" . }}-dbup-common
+  {{- with .Values.dbInit.common.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      securityContext:
+        {{- toYaml .Values.dbInit.common.podSecurityContext | nindent 8 }}
+      containers:
+        - image: {{ .Values.dbInit.common.image.repository }}:{{ .Values.dbInit.common.image.tag }}
+          name: dbup-common 
+          command:
+            - dotnet
+            - DotStat.DbUp.dll
+            - upgrade
+          args:
+            - --force
+            - --commonDb
+            - --connectionString 
+            {{- $addParams := join ";" (append .Values.dbInit.common.additionalParams "") }}
+            {{- $addUserParams := join ";" .Values.userSecrets.admin.additionalParams }}
+            - Server={{ .Values.dbInit.common.serverHostname }},{{ .Values.dbInit.common.serverPort }};Database={{ .Values.dbInit.common.dbName }};User=$(ADMIN_USER);Password=$(ADMIN_PASSWORD);{{ $addParams }}{{ $addUserParams }}
+            - --loginName
+            - $(WRITER_USER)
+            - --loginPwd
+            - $(WRITER_PASSWORD)
+            {{- if .Values.userSecrets.reader }}
+            - --ROloginName
+            - $(READ_ONLY_USER)
+            - --ROloginPwd
+            - $(READ_ONLY_PASSWORD)
+            {{- end }}
+            {{- if and .Values.dbInit.common.alterPasswords .Values.dbInit.common.executeDbaScripts }}
+            - --alterPassword
+            {{- end }}
+            {{- if not .Values.dbInit.common.executeDbaScripts }}
+            - --withoutDbaScripts
+            {{- end }}
+            {{- with .Values.dbInit.common.timezone }}
+            - --timezone
+            - '{{ . }}'
+            {{- end }}
+            {{- if and .Values.dbInit.common.dropDb .Values.dbInit.common.executeDbaScripts }}
+            - --dropDb
+            {{- end }}
+            - --executionTimeout
+            - '{{ .Values.dbInit.common.executionTimeout }}'
+            {{- with .Values.dbInit.common.googleLogging }}
+            - --googleProjectId
+            - '{{ .projectId }}'
+            - --googleLogId
+            - '{{ .logId }}'
+            {{- end }}
+          env:
+            - name: DBSERVER_COMMON
+              value: "{{ .Values.dbInit.common.serverHostname }},{{ .Values.dbInit.common.serverPort }}"
+            - name: DB_COMMON
+              value: {{ .Values.dbInit.common.dbName }}
+            {{- with .Values.userSecrets.admin }}
+            - name: ADMIN_USER
+              valueFrom:
+                secretKeyRef:
+                  key: {{ .username.key }}
+                  name: {{ include "authz.dbSecretName" . | default (include "authz.dbGeneratedSecretName" (dict "root" $ "type" "data" "key" "admin" ) ) }}
+            - name: ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: {{ .password.key }}
+                  name: {{ include "authz.dbSecretName" . | default (include "authz.dbGeneratedSecretName" (dict "root" $ "type" "data" "key" "admin" ) ) }}
+            {{- end }}
+            {{- with .Values.userSecrets.writer }}
+            - name: WRITER_USER
+              valueFrom:
+                secretKeyRef:
+                  key: {{ .username.key }}
+                  name: {{ include "authz.dbSecretName" . | default (include "authz.dbGeneratedSecretName" (dict "root" $ "type" "data" "key" "writer" ) ) }}
+            - name: WRITER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: {{ .password.key }}
+                  name: {{ include "authz.dbSecretName" . | default (include "authz.dbGeneratedSecretName" (dict "root" $ "type" "data" "key" "writer" ) ) }}
+            {{- end }}
+            {{- with .Values.userSecrets.reader }}
+            - name: READ_ONLY_USER
+              valueFrom:
+                secretKeyRef:
+                  key: {{ .username.key }}
+                  name: {{ include "authz.dbSecretName" . | default (include "authz.dbGeneratedSecretName" (dict "root" $ "type" "data" "key" "reader" ) ) }}
+            - name: READ_ONLY_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: {{ .password.key }}
+                  name: {{ include "authz.dbSecretName" . | default (include "authz.dbGeneratedSecretName" (dict "root" $ "type" "data" "key" "reader" ) ) }}
+            {{- end }}
+          {{- with .Values.dbInit.common.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          securityContext:
+            {{- toYaml .Values.dbInit.common.securityContext | nindent 12 }}
+          volumeMounts:
+            - mountPath: /tmp
+              name: tmp
+          {{- with .Values.dbInit.common.volumeMounts }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      restartPolicy: Never
+      volumes:
+        - name: tmp
+          emptyDir: {}      
+        {{- with .Values.volumes }}
+          {{- toYaml . | nindent 10 }}
+        {{- end }}

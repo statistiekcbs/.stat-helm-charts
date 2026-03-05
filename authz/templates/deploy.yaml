@@ -1,0 +1,92 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "authz.fullname" . }}
+  labels:
+    {{- include "authz.labels" . | nindent 4 }}
+spec:
+  revisionHistoryLimit: 0
+  selector:
+    matchLabels:
+      {{- include "authz.selectorLabels" . | nindent 6 }}
+  replicas: {{ .Values.replicaCount }}
+  template:
+    metadata:
+    {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    spec:
+      {{- with .Values.topologySpreadConstraints }}
+      topologySpreadConstraints: 
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8}}
+      containers:
+        - name: authz
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "authz.fullname" . }}-config
+          env:
+            - name: ASPNETCORE_URLS
+              value: http://+:{{ .Values.service.port }}
+            - name: DBSERVER_COMMON
+              value: "{{ .Values.dbInit.common.serverHostname }},{{ .Values.dbInit.common.serverPort }}"
+            - name: DB_COMMON
+              value: {{ .Values.dbInit.common.dbName }}
+            {{- with .Values.userSecrets.writer }}
+            - name: USER
+              valueFrom:
+                secretKeyRef:
+                  key: {{ .username.key }}
+                  name: {{ include "authz.dbSecretName" . | default (include "authz.dbGeneratedSecretName" (dict "root" $ "type" "data" "key" "writer" ) ) }}
+            - name: USER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: {{ .password.key }}
+                  name: {{ include "authz.dbSecretName" . | default (include "authz.dbGeneratedSecretName" (dict "root" $ "type" "data" "key" "writer" ) ) }}
+            {{- end }}
+            - name: "DotStatSuiteCoreCommonDbConnectionString"
+              value: "Server=$(DBSERVER_COMMON);Database=$(DB_COMMON);User=$(USER);Password=$(USER_PASSWORD);"
+            - name: "AutoLog2Google"
+              value: {{ .Values.env.autoLogToGoogle }}
+          command: [ "/bin/sh" ]
+          args: [ "-c", "dotnet DotStatServices.AuthorizationManagement.dll" ]
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+          {{- with .Values.startupProbe }}
+          startupProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            {{- with .Values.volumeMounts }}
+              {{- toYaml . | nindent 14 }}
+            {{- end }}
+            - mountPath: /tmp
+              name: tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        {{- with .Values.volumes }}
+          {{- toYaml . | nindent 10 }}
+        {{- end }}

@@ -1,0 +1,14 @@
+apiVersion: v2
+name: authz
+version: 1.0.0
+description: |
+  A Helm chart for the Dotstat authorization management service.
+
+  This chart includes the authorization management service application and supports external
+  Secrets as well as the use of probes form the HTTP endpoint
+type: application
+home: https://github.com/statistiekcbs/.stat-helm-charts
+sources:
+  - https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-auth-management
+icon: https://raw.githubusercontent.com/statistiekcbs/.stat-helm-charts/refs/heads/main/authz/icon.png
+appVersion: "v11.0.0"
