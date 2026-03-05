@@ -197,7 +197,8 @@ startupProbe:
   successThreshold: 1
   failureThreshold: 15
   periodSeconds: 5
-  timeoutSeconds: 3              
+  timeoutSeconds: 3
+           
 readinessProbe:
   httpGet:
     path: /health
@@ -206,6 +207,7 @@ readinessProbe:
   failureThreshold: 2
   periodSeconds: 10
   timeoutSeconds: 3
+
 livenessProbe:
   httpGet:
     path: /live
@@ -243,18 +245,29 @@ probe:
 
 
 probedb:
-  labels: {}
-  interval: 30s
-  module: tls_connect
-  prober:
-    path: /probe
-    url: "-override-"
-  targets:
-    staticConfig:
-      labels:
-        probe: authz-db
-      static:
-        - "-override-"
+  # -- Enables an HTTP probe
+  enabled: false
+  # -- Probe interval
+  interval: "30s"
+  # -- Label to get picked up by the monitoring stack
+  # @default -- release: rancher-monitoring
+  selectorLabel: ""
+  # -- Additional labels to add to the probe and prometheus metric
+  extraLabels: {}
+  # -- Name of the module to use for probing
+  module: "tls_connect"
+  # -- URL of the prober (blackbox exporter)
+  proberUrl: ""
+  # -- Path used by the prober
+  proberPath: "/probe"
+  # -- Value of the "probe" label, defaults to the probe resource name
+  probeLabel: ""
+  # -- Metric relabeling
+  relabelings: []
+    # - sourceLabels: 
+    #   targetLabel:
+  # -- URLs to probe, usually the HTTPRoute or Ingress hostnames
+  urls: []
 
 dbupcommon:
   annotaions: {}
@@ -359,7 +372,54 @@ dbupcommon:
 
       # -- Additional parameters for writer connection string
       additionalParams: []
-    reader: {}
+    reader: 
+      # -- Secret name for username and password
+      name: ""
+      # -- Set to true to use an external
+      # When using an external secret , the secret name is generated
+      isExternal: false
+      annotations: {}
+      username:
+        # -- The username secret key
+        key: ""
+        # -- When using an external secret, remoteRef.key is required
+        # If remoteRef.property is not set, username.key is used
+        remoteRef:
+          key: ""
+      password:
+        # -- The password secret key
+        key: ""
+        # -- When using an external secret, remoteRef.key is required
+        # If remoteRef.property is not set, password.key is used
+        remoteRef:
+          key: ""
+      # -- When using an external secret, secretStoreRef.name is required
+      secretStoreRef:
+        name: ""
+        # kind: ClusterSecretStore
+      # When using an external secret, if target.name is not set, the generated
+      # seret name will be used
+      # target:
+      #   creationPolicy: Owner
+      #   deletionPolicy: Retain
+      #   name: ""
+      # refreshInterval: 24h
+
+      # -- Additional parameters for writer connection string
+      additionalParams: []
+  
+  probe:
+    enabled: false
+    selectorLabel: ""
+    extraLabels: {}
+    module: tcp_connect
+    interval: 30s
+    proberUrl: ""
+    proberPath: /probe
+    probeLabel: ""
+    relabelings: []
+      # - sourceLabels: 
+      #   targetLabel:
   
   additionalParams: []
 
