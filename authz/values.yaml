@@ -64,17 +64,13 @@ auth:
   # -- Is openid authentication enabled
   enabled: true
   audience: openid
-  authority: https://keycloak.user-np01.k8s.cbsp.nl/realms/kerberos
-  authorizationUrl: https://keycloak.user-np01.k8s.cbsp.nl/realms/kerberos/protocol/openid-connect/auth
-  clientId: DotStat-Cbs
-  scopes:
-  - openid
-  - profile
-  - email
-  - groups
+  authority: ""
+  authorizationUrl: ""
+  clientId: ""
+  scopes: []
   claimsMapping:
-    email: "email"
-    groups: "groups"
+    email: ""
+    groups: ""
   requireHttps: false
   validateIssuer: false
   allowAnonymous: true
