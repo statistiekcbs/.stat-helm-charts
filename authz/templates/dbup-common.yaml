@@ -113,7 +113,7 @@ spec:
       restartPolicy: Never
       volumes:
         - name: tmp
-          emptyDir: {}      
+          emptyDir: {}
         {{- with .Values.volumes }}
-          {{- toYaml . | nindent 10 }}
+          {{- toYaml . | nindent 8 }}
         {{- end }}

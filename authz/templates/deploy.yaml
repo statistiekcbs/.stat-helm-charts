@@ -80,7 +80,7 @@ spec:
           {{- end }}
           volumeMounts:
             {{- with .Values.volumeMounts }}
-              {{- toYaml . | nindent 14 }}
+              {{- toYaml . | nindent 12 }}
             {{- end }}
             - mountPath: /tmp
               name: tmp
@@ -88,5 +88,5 @@ spec:
         - name: tmp
           emptyDir: {}
         {{- with .Values.volumes }}
-          {{- toYaml . | nindent 10 }}
+          {{- toYaml . | nindent 8 }}
         {{- end }}
