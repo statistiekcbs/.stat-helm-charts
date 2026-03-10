@@ -21,11 +21,11 @@ spec:
             - upgrade
           args:
             - --force
-            - --commonDb
             - --connectionString 
             {{- $addParams := join ";" (append .Values.dbInit.common.additionalParams "") }}
             {{- $addUserParams := join ";" .Values.userSecrets.admin.additionalParams }}
-            - Server={{ .Values.dbInit.common.serverHostname }},{{ .Values.dbInit.common.serverPort }};Database={{ .Values.dbInit.common.dbName }};User=$(ADMIN_USER);Password=$(ADMIN_PASSWORD);{{ $addParams }}{{ $addUserParams }}
+            - "Server={{ .Values.dbInit.common.serverHostname }},{{ .Values.dbInit.common.serverPort }};Database={{ .Values.dbInit.common.dbName }};User=$(ADMIN_USER);Password=$(ADMIN_PASSWORD);{{ $addParams }}{{ $addUserParams }}"
+            - --commonDb
             - --loginName
             - $(WRITER_USER)
             - --loginPwd

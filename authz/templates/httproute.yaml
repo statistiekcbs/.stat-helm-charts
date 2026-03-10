@@ -20,7 +20,7 @@ spec:
   {{- end }}
   rules:
     - backendRefs:
-        - name: {{ include "authz.fullname" . }}
+        - name: {{ include "authz.fullname" . }}-clip
           port: {{ .Values.service.port }}
       {{- with .Values.httpRoute.serviceBackendFilters }}
       filters:
