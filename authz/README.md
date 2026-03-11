@@ -2,7 +2,9 @@
 
 ![Version: 1.0.2](https://img.shields.io/badge/Version-1.0.2-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v11.0.0](https://img.shields.io/badge/AppVersion-v11.0.0-informational?style=flat-square)
 
-A Helm chart for the .Stat Auth Management Service. See the docs in the source code for more information.
+A Helm chart for the .Stat Auth Management Service. Refer to the docs in the source code for more information.
+
+This Chart deploys the Authorisation Management Service pod and a Database init job.
 
 **Homepage:** <https://github.com/statistiekcbs/.stat-helm-charts>
 
@@ -18,19 +20,23 @@ A Helm chart for the .Stat Auth Management Service. See the docs in the source c
 | affinity | object | `{}` |  |
 | auth.allowAnonymous | bool | `true` |  |
 | auth.audience | string | `"openid"` |  |
-| auth.authority | string | `"https://keycloak.user-np01.k8s.cbsp.nl/realms/kerberos"` |  |
-| auth.authorizationUrl | string | `"https://keycloak.user-np01.k8s.cbsp.nl/realms/kerberos/protocol/openid-connect/auth"` |  |
-| auth.claimsMapping.email | string | `"email"` |  |
-| auth.claimsMapping.groups | string | `"groups"` |  |
-| auth.clientId | string | `"DotStat-Cbs"` |  |
+| auth.authority | string | `""` | Authority url of token issuer |
+| auth.authorizationUrl | string | `""` | Authorization url (used in swagger UI interface) |
+| auth.claimsMapping.email | string | `""` | Key/value mapping of a key used in the C# code to JWT token claim. |
+| auth.claimsMapping.groups | string | `""` | Key/value mapping of a key used in the C# code to JWT token claim. |
+| auth.clientId | string | `""` | Client/application Id |
 | auth.enabled | bool | `true` | Is openid authentication enabled |
-| auth.requireHttps | bool | `false` |  |
-| auth.scopes[0] | string | `"openid"` |  |
-| auth.scopes[1] | string | `"profile"` |  |
-| auth.scopes[2] | string | `"email"` |  |
-| auth.scopes[3] | string | `"groups"` |  |
+| auth.requireHttps | bool | `false` | Is HTTPS connection to OpenId authority server required |
+| auth.scopes[0] | string | `"openid"` | 
+Requested openId scopes (used as parameters for authorization url) |
+| auth.scopes[1] | string | `"profile"` | 
+Requested openId scopes (used as parameters for authorization url) |
+| auth.scopes[2] | string | `"email"` | 
+Requested openId scopes (used as parameters for authorization url) |
+| auth.scopes[3] | string | `"groups"` | 
+Requested openId scopes (used as parameters for authorization url) |
 | auth.showPii | bool | `true` |  |
-| auth.validateIssuer | bool | `false` |  |
+| auth.validateIssuer | bool | `false` | Is iss (issuer) claim in JWT token should match configured authority |
 | dbInit.common.additionalParams | list | `[]` |  |
 | dbInit.common.alterPasswords | bool | `false` | Changes the passwords of existing loginName and ROloginName logins in database |
 | dbInit.common.annotations | object | `{}` |  |
