@@ -2,6 +2,8 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: {{ include "authz.fullname" . }}-dbup-common
+  labels:
+    {{- include "authz.labels" . | nindent 4 }}
   {{- with .Values.dbInit.common.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
@@ -24,7 +26,7 @@ spec:
             - --connectionString 
             {{- $addParams := join ";" (append .Values.dbInit.common.additionalParams "") }}
             {{- $addUserParams := join ";" .Values.userSecrets.admin.additionalParams }}
-            - "Server={{ .Values.dbInit.common.serverHostname }},{{ .Values.dbInit.common.serverPort }};Database={{ .Values.dbInit.common.dbName }};User=$(ADMIN_USER);Password=$(ADMIN_PASSWORD);{{ $addParams }}{{ $addUserParams }}"
+            - "Server={{ .Values.database.serverHostname }},{{ .Values.database.serverPort }};Database={{ .Values.database.dbName }};User=$(ADMIN_USER);Password=$(ADMIN_PASSWORD);{{ $addParams }}{{ $addUserParams }}"
             - --commonDb
             - --loginName
             - $(WRITER_USER)
@@ -59,9 +61,9 @@ spec:
             {{- end }}
           env:
             - name: DBSERVER_COMMON
-              value: "{{ .Values.dbInit.common.serverHostname }},{{ .Values.dbInit.common.serverPort }}"
+              value: "{{ .Values.database.serverHostname }},{{ .Values.database.serverPort }}"
             - name: DB_COMMON
-              value: {{ .Values.dbInit.common.dbName }}
+              value: {{ .Values.database.dbName }}
             {{- with .Values.userSecrets.admin }}
             - name: ADMIN_USER
               valueFrom:

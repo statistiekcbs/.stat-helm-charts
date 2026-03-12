@@ -15,5 +15,11 @@ spec:
       targetPort: http
       protocol: TCP
       name: http
+  {{- if .Values.monitoring.enabled }}
+    - port: {{ .Values.monitoring.port }}
+      targetPort: metrics
+      protocol: TCP
+      name: metrics
+  {{- end }}
   selector:
     {{- include "authz.selectorLabels" . | nindent 4 }}

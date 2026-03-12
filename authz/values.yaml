@@ -5,6 +5,8 @@
 # This will set the replicaset count more information can be found here: https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/
 replicaCount: 2
 
+revisionHistoryLimit: 10
+
 # This sets the container image more information can be found here: https://kubernetes.io/docs/concepts/containers/images/
 image:
   repository: siscc/dotstatsuite-core-auth-management
@@ -316,6 +318,14 @@ userSecrets:
     # -- Additional parameters for writer connection string
     additionalParams: []
 
+database:
+  # -- Server URL
+  serverHostname: ""
+  serverPort: 1433
+  # -- Database name
+  dbName: ""
+
+  additionalParams: []
 
 dbInit:
   common:
@@ -337,12 +347,6 @@ dbInit:
       pullPolicy: IfNotPresent
       # -- Overrides the image tag whose default is the chart appVersion.
       tag: "v31.0.0"
-
-    # -- Server URL
-    serverHostname: ""
-    serverPort: 1433
-    # -- Database name
-    dbName: ""
 
     # -- The DBA scripts are not executed: it will not create logins / users, won't
     # put the DB in restricted mode while running
@@ -391,6 +395,78 @@ dbInit:
     additionalParams: []
 
     volumeMounts: []
+
+monitoring:
+  # -- Enable monitoring by adding a dotnet monitoring side-car
+  enabled: false
+
+  # -- Monitoring is build for the dotnet-monitor container from Microsoft
+  image:
+    repository: mcr.microsoft.com/dotnet/monitor
+    pullPolicy: IfNotPresent
+    # -- Overrides the image tag whose default is the chart appVersion.
+    tag: "8"
+
+  # -- Port number to listen to for metrics requests
+  port: 52325
+
+  # -- The collectionInterval is the amount of seconds between 2 collection events
+  collectionInterval: 5
+  # -- The collectionCount is the amount of collections exposed at the metrics endpoint
+  collectionCount: 3
+  # -- The collection interval and count together form the metrics scrape interval:
+  # scrapeInterval = collectionInterval*collectionCount
+
+  # -- Additional metrics providers and counter names
+  # https://github.com/dotnet/dotnet-monitor/blob/main/documentation/configuration/metrics-configuration.md#custom-metrics
+  providers:
+    - ProviderName: System.Runtime
+    - ProviderName: Microsoft.AspNetCore.Hosting
+    - ProviderName: Microsoft.AspNetCore.Http.Connections
+    - ProviderName: Microsoft-AspNetCore-Server-Kestrel
+    - ProviderName: System.Net.Http
+
+  # -- Additional environment variables
+  env: []
+
+  resources:
+    {}
+    # Recommende resource request and limits:
+    # https://github.com/dotnet/dotnet-monitor/blob/main/documentation/kubernetes.md#recommended-container-limits
+    # requests:
+    #   memory: "32Mi"
+    #   cpu: "50m"
+    # limits:
+    #   memory: "256Mi"
+    #   cpu: "250m"
+
+  # -- Make sure the user for the main container and the monitoring side car are
+  # the same!
+  securityContext:
+    {}
+    # allowPrivilegeEscalation: false
+    # privileged: false
+    # capabilities:
+    #   drop:
+    #   - all
+    # runAsGroup: 1654
+    # runAsUser: 1654
+    # runAsNonRoot: true
+    # readOnlyRootFilesystem: true
+
+  volumeMounts:
+    []
+    # - name: foo
+    #   mountPath: "/etc/foo"
+    #   readOnly: true
+
+  serviceMonitor:
+    # -- Enables the deployment of a serviceMonitor resource
+    enabled: false
+
+  grafanaDashboard:
+    #
+    enabled: false
 
 # Additional volumes on the output Deployment definition.
 volumes: []

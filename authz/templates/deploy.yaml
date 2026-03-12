@@ -5,7 +5,7 @@ metadata:
   labels:
     {{- include "authz.labels" . | nindent 4 }}
 spec:
-  revisionHistoryLimit: 0
+  revisionHistoryLimit: {{ .Values.revisionHistoryLimit }}
   selector:
     matchLabels:
       {{- include "authz.selectorLabels" . | nindent 6 }}
@@ -44,9 +44,9 @@ spec:
             - name: ASPNETCORE_URLS
               value: http://+:{{ .Values.containerPort }}
             - name: DBSERVER_COMMON
-              value: "{{ .Values.dbInit.common.serverHostname }},{{ .Values.dbInit.common.serverPort }}"
+              value: "{{ .Values.database.serverHostname }},{{ .Values.database.serverPort }}"
             - name: DB_COMMON
-              value: {{ .Values.dbInit.common.dbName }}
+              value: {{ .Values.database.dbName }}
             {{- with .Values.userSecrets.writer }}
             - name: USER
               valueFrom:
@@ -59,8 +59,9 @@ spec:
                   key: {{ .password.key }}
                   name: {{ include "authz.dbSecretName" . | default (include "authz.dbGeneratedSecretName" (dict "root" $ "type" "data" "key" "writer" ) ) }}
             {{- end }}
+            {{- $addParams = join ";" (append .Values.database.additionalParams "" ) }}
             - name: "DotStatSuiteCoreCommonDbConnectionString"
-              value: "Server=$(DBSERVER_COMMON);Database=$(DB_COMMON);User=$(USER);Password=$(USER_PASSWORD);"
+              value: "Server=$(DBSERVER_COMMON);Database=$(DB_COMMON);User=$(USER);Password=$(USER_PASSWORD);{{ $addParams }}{{ $addUserParams }}"
             - name: "AutoLog2Google"
               value: {{ .Values.env.autoLogToGoogle | quote }}
           command: [ "/bin/sh" ]
@@ -86,6 +87,50 @@ spec:
             {{- end }}
             - mountPath: /tmp
               name: tmp
+        {{- if .Values.monitoring.enabled }}
+        - name: monitor
+          image: "{{ .Values.monitoring.image.repository }}:{{ .Values.monitoring.image.tag }}"
+          args:
+            - '--configuration-file-path'
+            - '/app/config/dotnet-monitor.json'
+          env:
+            - name: DOTNET_RUNNING_IN_CONTAINERS
+              value: 'true'
+            - name: DOTNETMONITOR_DiagnosticPort__ConnectionMode
+              value: Listen
+            - name: DOTNETMONITOR_DiagnosticPort__EndpointName
+              value: /diag/dotnet-monitor.sock
+            - name: DOTNETMONITOR_Storage__DumpTempFolder
+              value: /diag/dumps
+            - name: DOTNETMONITOR_Metrics__Endpoints
+              value: http://*:{{ .Values.monitoring.port }}
+            - name: DefaultProcess__Filters__0__ProcessName
+              value: dotnet
+            - name: DOTNETMONITOR_GlobalCounter__IntervalSeconds
+              value: {{ .Values.monitoring.collectionInterval | quote }}
+            - name: DOTNETMONITOR_Metrics__MetricCount
+              value: {{ .Values.monitoring.collectionCount | quote }}
+            {{- with .Values.monitoring.env }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          ports:
+            - containerPort: {{ .Values.monitoring.port }}
+              name: metrics
+          resources:
+            {{- toYaml .Values.monitoring.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.monitoring.securityContext | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - mountPath: /diag
+              name: diagvol
+            - mountPath: /app/config
+              name: monitor-config
+            {{- with .Values.monitoring.volumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+        {{- end }}
       volumes:
         - name: tmp
           emptyDir: {}
