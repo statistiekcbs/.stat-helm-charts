@@ -59,9 +59,9 @@ spec:
                   key: {{ .password.key }}
                   name: {{ include "authz.dbSecretName" . | default (include "authz.dbGeneratedSecretName" (dict "root" $ "type" "data" "key" "writer" ) ) }}
             {{- end }}
-            {{- $addParams = join ";" (append .Values.database.additionalParams "" ) }}
+            {{- $addParams := join ";" (append .Values.database.additionalParams "" ) }}
             - name: "DotStatSuiteCoreCommonDbConnectionString"
-              value: "Server=$(DBSERVER_COMMON);Database=$(DB_COMMON);User=$(USER);Password=$(USER_PASSWORD);{{ $addParams }}{{ $addUserParams }}"
+              value: "Server=$(DBSERVER_COMMON);Database=$(DB_COMMON);User=$(USER);Password=$(USER_PASSWORD);{{ $addParams }}"
             - name: "AutoLog2Google"
               value: {{ .Values.env.autoLogToGoogle | quote }}
           command: [ "/bin/sh" ]
