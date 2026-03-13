@@ -1,6 +1,6 @@
 # authz
 
-![Version: 1.0.2](https://img.shields.io/badge/Version-1.0.2-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v11.0.0](https://img.shields.io/badge/AppVersion-v11.0.0-informational?style=flat-square)
+![Version: 1.0.7](https://img.shields.io/badge/Version-1.0.7-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v11.0.0](https://img.shields.io/badge/AppVersion-v11.0.0-informational?style=flat-square)
 
 A Helm chart for the .Stat Auth Management Service. Refer to the docs in the source code for more information.
 
@@ -27,20 +27,17 @@ This Chart deploys the Authorisation Management Service pod and a Database init 
 | auth.clientId | string | `""` | Client/application Id |
 | auth.enabled | bool | `true` | Is openid authentication enabled |
 | auth.requireHttps | bool | `false` | Is HTTPS connection to OpenId authority server required |
-| auth.scopes[0] | string | `"openid"` | 
-Requested openId scopes (used as parameters for authorization url) |
-| auth.scopes[1] | string | `"profile"` | 
-Requested openId scopes (used as parameters for authorization url) |
-| auth.scopes[2] | string | `"email"` | 
-Requested openId scopes (used as parameters for authorization url) |
-| auth.scopes[3] | string | `"groups"` | 
-Requested openId scopes (used as parameters for authorization url) |
+| auth.scopes | list | `[]` | Requested openId scopes (used as parameters for authorization url) |
 | auth.showPii | bool | `true` |  |
-| auth.validateIssuer | bool | `false` | Is iss (issuer) claim in JWT token should match configured authority |
+| auth.validateIssuer | bool | `false` |  |
+| containerPort | int | `8080` |  |
+| database.additionalParams | list | `[]` |  |
+| database.dbName | string | `""` | Database name |
+| database.serverHostname | string | `""` | Server URL |
+| database.serverPort | int | `1433` |  |
 | dbInit.common.additionalParams | list | `[]` |  |
 | dbInit.common.alterPasswords | bool | `false` | Changes the passwords of existing loginName and ROloginName logins in database |
 | dbInit.common.annotations | object | `{}` |  |
-| dbInit.common.dbName | string | `""` | Database name |
 | dbInit.common.dropDb | bool | `false` | Drops the database before creating it |
 | dbInit.common.enabled | bool | `false` | Enable structure database init job |
 | dbInit.common.executeDbaScripts | bool | `true` | The DBA scripts are not executed: it will not create logins / users, won't put the DB in restricted mode while running |
@@ -53,8 +50,6 @@ Requested openId scopes (used as parameters for authorization url) |
 | dbInit.common.resources | object | `{}` |  |
 | dbInit.common.rollDeployment | bool | `false` | Roll deployment on job change |
 | dbInit.common.securityContext | object | `{}` |  |
-| dbInit.common.serverHostname | string | `""` | Server URL |
-| dbInit.common.serverPort | int | `1433` |  |
 | dbInit.common.timezone | string | `""` | Optional. When provided, uses the given value (name of the time zone) instead of trying to determine it in the related sql script(s). Should be used in cases when the stored procedure [MASTER].[dbo.xp_regread] cannot be executed. |
 | dbInit.common.volumeMounts | list | `[]` |  |
 | env.autoLogToGoogle | bool | `false` |  |
@@ -84,6 +79,19 @@ Requested openId scopes (used as parameters for authorization url) |
 | livenessProbe.periodSeconds | int | `30` |  |
 | livenessProbe.successThreshold | int | `1` |  |
 | livenessProbe.timeoutSeconds | int | `3` |  |
+| monitoring.collectionCount | int | `3` | The collectionCount is the amount of collections exposed at the metrics endpoint |
+| monitoring.collectionInterval | int | `5` | The collectionInterval is the amount of seconds between 2 collection events |
+| monitoring.enabled | bool | `false` | Enable monitoring by adding a dotnet monitoring side-car |
+| monitoring.env | list | `[]` | Additional environment variables |
+| monitoring.grafanaDashboard.enabled | bool | `false` |  |
+| monitoring.image | object | `{"pullPolicy":"IfNotPresent","repository":"mcr.microsoft.com/dotnet/monitor","tag":"8"}` | Monitoring is build for the dotnet-monitor container from Microsoft |
+| monitoring.image.tag | string | `"8"` | Overrides the image tag whose default is the chart appVersion. |
+| monitoring.port | int | `52325` | Port number to listen to for metrics requests |
+| monitoring.providers | list | `[{"ProviderName":"System.Runtime"},{"ProviderName":"Microsoft.AspNetCore.Hosting"},{"ProviderName":"Microsoft.AspNetCore.Http.Connections"},{"ProviderName":"Microsoft-AspNetCore-Server-Kestrel"},{"ProviderName":"System.Net.Http"}]` | Additional metrics providers and counter names https://github.com/dotnet/dotnet-monitor/blob/main/documentation/configuration/metrics-configuration.md#custom-metrics |
+| monitoring.resources | object | `{}` |  |
+| monitoring.securityContext | object | `{}` | Make sure the user for the main container and the monitoring side car are the same! |
+| monitoring.serviceMonitor.enabled | bool | `false` | Enables the deployment of a serviceMonitor resource |
+| monitoring.volumeMounts | list | `[]` |  |
 | nameOverride | string | `""` |  |
 | networkPolicies.enableIngress | bool | `true` | Enable ingress network policies |
 | networkPolicies.enabled | bool | `false` | Enables the deployment of network policies You can use YAML anchors to refer to other parts of the values file, like the service port for example https://helm.sh/docs/chart_template_guide/yaml_techniques/#yaml-anchors |
@@ -120,6 +128,7 @@ Requested openId scopes (used as parameters for authorization url) |
 | readinessProbe.timeoutSeconds | int | `3` |  |
 | replicaCount | int | `2` |  |
 | resources | object | `{}` |  |
+| revisionHistoryLimit | int | `10` |  |
 | securityContext | object | `{}` |  |
 | service.annotations | object | `{}` |  |
 | service.port | int | `8080` |  |
