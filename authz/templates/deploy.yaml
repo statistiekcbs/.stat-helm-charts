@@ -37,9 +37,6 @@ spec:
           securityContext:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          envFrom:
-            - configMapRef:
-                name: {{ include "authz.fullname" . }}-config
           env:
             - name: ASPNETCORE_URLS
               value: http://+:{{ .Values.containerPort }}
@@ -127,6 +124,8 @@ spec:
               name: diagvol
             - mountPath: /app/config
               name: monitor-config
+            - name: config
+              mountPath: /app/config
             {{- with .Values.monitoring.volumeMounts }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
@@ -134,6 +133,11 @@ spec:
       volumes:
         - name: tmp
           emptyDir: {}
+        - name: config
+          configMap:
+            name: {{ include "nsiws.fullname" . }}-config
+        - emptyDir: {}
+          name: config-tmp
         {{- with .Values.volumes }}
           {{- toYaml . | nindent 8 }}
         {{- end }}
