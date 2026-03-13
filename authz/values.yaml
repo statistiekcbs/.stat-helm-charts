@@ -1,0 +1,488 @@
+# Default values for authz.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# This will set the replicaset count more information can be found here: https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/
+replicaCount: 2
+
+revisionHistoryLimit: 10
+
+# This sets the container image more information can be found here: https://kubernetes.io/docs/concepts/containers/images/
+image:
+  repository: siscc/dotstatsuite-core-auth-management
+  # This sets the pull policy for images.
+  pullPolicy: Always
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: "v11.0.0"
+
+# This is for the secrets for pulling an image from a private repository more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+imagePullSecrets: []
+# This is to override the chart name.
+nameOverride: ""
+fullnameOverride: ""
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext: {}
+
+topologySpreadConstraints:
+- maxSkew: 1
+  topologyKey: kubernetes.io/hostname
+  whenUnsatisfiable: DoNotSchedule
+  labelSelector:
+    matchLabels: {}
+
+securityContext: {}
+
+# This is for setting up a service more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/
+service:
+  annotations: {}
+  type: ClusterIP
+  port: 8080
+
+containerPort: 8080
+
+ingress:
+  enabled: false
+  className: ""
+  annotations:
+    {}
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+  hosts:
+    - host: chart-example.local
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls:
+    []
+    # - secretName: chart-example-tls
+    #   hosts:
+    #     - chart-example.local
+
+env:
+  autoLogToGoogle: false
+
+auth:
+  # -- Is openid authentication enabled
+  enabled: true
+  audience: openid
+  authority: ""
+  authorizationUrl: ""
+  clientId: ""
+  scopes: []
+  claimsMapping:
+    email: ""
+    groups: ""
+  requireHttps: false
+  validateIssuer: false
+  allowAnonymous: true
+  showPii: true
+
+# -- Expose the service via gateway-api HTTPRoute
+# Requires Gateway API resources and suitable controller installed within the cluster
+# (see: https://gateway-api.sigs.k8s.io/guides/)
+httpRoute:
+  # -- enables the creation of an HTTPRoute
+  enabled: false
+
+  # -- Add annotations to the route
+  annotations: {}
+
+  # -- A least one parentRef is required
+  parentRefs: []
+
+  # -- Hostnames to match the route
+  hostnames: []
+
+  # -- Defines filters for the default backend
+  serviceBackendFilters: []
+
+  # -- Defines what the default service backend matches
+  serviceBackendMatches:
+    - path:
+        type: PathPrefix
+        value: /
+
+  # -- Defines addional rules
+  additionalRules: []
+
+networkPolicies:
+  # -- Enables the deployment of network policies
+  # You can use YAML anchors to refer to other parts of the values file, like
+  # the service port for example
+  # https://helm.sh/docs/chart_template_guide/yaml_techniques/#yaml-anchors
+  enabled: false
+
+  # -- Enable ingress network policies
+  enableIngress: true
+
+  # -- The list selectors allowed to acces the pod on the http port
+  httpSelectors:
+    []
+    # - namespaceSelector:
+    #     matchLabels:
+    #       kubernetes.io/metadata.name: namespace-name
+    #   podSelector:
+    #     matchLabels:
+    #       label: value
+
+resources: {}
+
+# This is to setup the liveness and readiness probes more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
+startupProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 15              
+  successThreshold: 1
+  failureThreshold: 15
+  periodSeconds: 5
+  timeoutSeconds: 3
+           
+readinessProbe:
+  httpGet:
+    path: /health
+    port: http
+  successThreshold: 1
+  failureThreshold: 2
+  periodSeconds: 10
+  timeoutSeconds: 3
+
+livenessProbe:
+  httpGet:
+    path: /live
+    port: http
+  successThreshold: 1
+  failureThreshold: 3
+  periodSeconds: 30
+  timeoutSeconds: 3
+
+#These are the values for the prometheus probe
+probe:
+  # -- Enables an HTTP probe
+  enabled: false
+  # -- Probe interval
+  interval: "30s"
+  # -- Label to get picked up by the monitoring stack
+  # @default -- release: rancher-monitoring
+  selectorLabel: ""
+  # -- Additional labels to add to the probe and prometheus metric
+  extraLabels: {}
+  # -- Name of the module to use for probing
+  module: "http_2xx"
+  # -- URL of the prober (blackbox exporter)
+  proberUrl: ""
+  # -- Path used by the prober
+  proberPath: "/probe"
+  # -- Value of the "probe" label, defaults to the probe resource name
+  probeLabel: ""
+  # -- Metric relabeling
+  relabelings: []
+    # - sourceLabels: 
+    #   targetLabel:
+  # -- URLs to probe, usually the HTTPRoute or Ingress hostnames
+  urls: []
+
+
+probedb:
+  # -- Enables an HTTP probe
+  enabled: false
+  # -- Probe interval
+  interval: "30s"
+  # -- Label to get picked up by the monitoring stack
+  # @default -- release: rancher-monitoring
+  selectorLabel: ""
+  # -- Additional labels to add to the probe and prometheus metric
+  extraLabels: {}
+  # -- Name of the module to use for probing
+  module: "tls_connect"
+  # -- URL of the prober (blackbox exporter)
+  proberUrl: ""
+  # -- Path used by the prober
+  proberPath: "/probe"
+  # -- Value of the "probe" label, defaults to the probe resource name
+  probeLabel: ""
+  # -- Metric relabeling
+  relabelings: []
+    # - sourceLabels: 
+    #   targetLabel:
+  # -- URLs to probe, usually the HTTPRoute or Ingress hostnames
+  urls: []
+
+userSecrets:
+  admin:
+    # -- Secret name for username and password
+    name: ""
+    # -- Set to true to use an external
+    # When using an external secret , the secret name is generated
+    isExternal: false
+    annotations: {}
+    username:
+      # -- The username secret key
+      key: ""
+      # -- When using an external secret, remoteRef.key is required
+      # If remoteRef.property is not set, username.key is used
+      remoteRef:
+        key: ""
+    password:
+      # -- The password secret key
+      key: ""
+      # -- When using an external secret, remoteRef.key is required
+      # If remoteRef.property is not set, password.key is used
+      remoteRef:
+        key: ""
+    # -- When using an external secret, secretStoreRef.name is required
+    secretStoreRef:
+      name: ""
+      # kind: ClusterSecretStore
+    # When using an external secret, if target.name is not set, the generated
+    # seret name will be used
+    # target:
+    #   creationPolicy: Owner
+    #   deletionPolicy: Retain
+    #   name: ""
+    # refreshInterval: 24h
+
+    # -- Additional parameters for admin connection string
+    additionalParams: []
+  writer:
+    # -- Secret name for username and password
+    name: ""
+    # -- Set to true to use an external
+    # When using an external secret , the secret name is generated
+    isExternal: false
+    annotations: {}
+    username:
+      # -- The username secret key
+      key: ""
+      # -- When using an external secret, remoteRef.key is required
+      # If remoteRef.property is not set, username.key is used
+      remoteRef:
+        key: ""
+    password:
+      # -- The password secret key
+      key: ""
+      # -- When using an external secret, remoteRef.key is required
+      # If remoteRef.property is not set, password.key is used
+      remoteRef:
+        key: ""
+    # -- When using an external secret, secretStoreRef.name is required
+    secretStoreRef:
+      name: ""
+      # kind: ClusterSecretStore
+    # When using an external secret, if target.name is not set, the generated
+    # seret name will be used
+    # target:
+    #   creationPolicy: Owner
+    #   deletionPolicy: Retain
+    #   name: ""
+    # refreshInterval: 24h
+
+    # -- Additional parameters for writer connection string
+    additionalParams: []
+  reader: 
+    # -- Secret name for username and password
+    name: ""
+    # -- Set to true to use an external
+    # When using an external secret , the secret name is generated
+    isExternal: false
+    annotations: {}
+    username:
+      # -- The username secret key
+      key: ""
+      # -- When using an external secret, remoteRef.key is required
+      # If remoteRef.property is not set, username.key is used
+      remoteRef:
+        key: ""
+    password:
+      # -- The password secret key
+      key: ""
+      # -- When using an external secret, remoteRef.key is required
+      # If remoteRef.property is not set, password.key is used
+      remoteRef:
+        key: ""
+    # -- When using an external secret, secretStoreRef.name is required
+    secretStoreRef:
+      name: ""
+      # kind: ClusterSecretStore
+    # When using an external secret, if target.name is not set, the generated
+    # seret name will be used
+    # target:
+    #   creationPolicy: Owner
+    #   deletionPolicy: Retain
+    #   name: ""
+    # refreshInterval: 24h
+
+    # -- Additional parameters for writer connection string
+    additionalParams: []
+
+database:
+  # -- Server URL
+  serverHostname: ""
+  serverPort: 1433
+  # -- Database name
+  dbName: ""
+
+  additionalParams: []
+
+dbInit:
+  common:
+    # -- Enable structure database init job
+    enabled: false
+
+    # -- Roll deployment on job change
+    rollDeployment: false
+
+    podSecurityContext: {}
+
+    annotations:
+      {}
+      # argocd.argoproj.io/hook: PreSync
+      # argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+
+    image:
+      repository: siscc/dotstatsuite-dbup
+      pullPolicy: IfNotPresent
+      # -- Overrides the image tag whose default is the chart appVersion.
+      tag: "v31.0.0"
+
+    # -- The DBA scripts are not executed: it will not create logins / users, won't
+    # put the DB in restricted mode while running
+    executeDbaScripts: true
+    # -- Drops the database before creating it
+    dropDb: false
+    # -- Changes the passwords of existing loginName and ROloginName logins in
+    # database
+    alterPasswords: false
+    # -- Optional. When provided, uses the given value (name of the time zone)
+    # instead of trying to determine it in the related sql script(s). Should be
+    # used in cases when the stored procedure [MASTER].[dbo.xp_regread] cannot
+    # be executed.
+    timezone: ""
+    # -- The execution timeout in minutes
+    executionTimeout: 30
+
+    googleLogging:
+      {}
+      # Google.Cloud logging projectId
+      # projectId: ""
+      # Google.Cloud logging logId
+      # logId: DbUp
+
+    securityContext:
+      {}
+      # readOnlyRootFilesystem: true
+      # allowPrivilegeEscalation: false
+      # privileged: false
+      # capabilities:
+      #   drop:
+      #   - all
+      # runAsGroup: 1654
+      # runAsUser: 1654
+      # runAsNonRoot: true
+
+    resources:
+      {}
+      # requests:
+      #   cpu: 100m
+      #   memory: 50Mi
+      # limits:
+      #   cpu: 500m
+      #   memory: 100Mi
+
+    additionalParams: []
+
+    volumeMounts: []
+
+monitoring:
+  # -- Enable monitoring by adding a dotnet monitoring side-car
+  enabled: false
+
+  # -- Monitoring is build for the dotnet-monitor container from Microsoft
+  image:
+    repository: mcr.microsoft.com/dotnet/monitor
+    pullPolicy: IfNotPresent
+    # -- Overrides the image tag whose default is the chart appVersion.
+    tag: "8"
+
+  # -- Port number to listen to for metrics requests
+  port: 52325
+
+  # -- The collectionInterval is the amount of seconds between 2 collection events
+  collectionInterval: 5
+  # -- The collectionCount is the amount of collections exposed at the metrics endpoint
+  collectionCount: 3
+  # -- The collection interval and count together form the metrics scrape interval:
+  # scrapeInterval = collectionInterval*collectionCount
+
+  # -- Additional metrics providers and counter names
+  # https://github.com/dotnet/dotnet-monitor/blob/main/documentation/configuration/metrics-configuration.md#custom-metrics
+  providers:
+    - ProviderName: System.Runtime
+    - ProviderName: Microsoft.AspNetCore.Hosting
+    - ProviderName: Microsoft.AspNetCore.Http.Connections
+    - ProviderName: Microsoft-AspNetCore-Server-Kestrel
+    - ProviderName: System.Net.Http
+
+  # -- Additional environment variables
+  env: []
+
+  resources:
+    {}
+    # Recommende resource request and limits:
+    # https://github.com/dotnet/dotnet-monitor/blob/main/documentation/kubernetes.md#recommended-container-limits
+    # requests:
+    #   memory: "32Mi"
+    #   cpu: "50m"
+    # limits:
+    #   memory: "256Mi"
+    #   cpu: "250m"
+
+  # -- Make sure the user for the main container and the monitoring side car are
+  # the same!
+  securityContext:
+    {}
+    # allowPrivilegeEscalation: false
+    # privileged: false
+    # capabilities:
+    #   drop:
+    #   - all
+    # runAsGroup: 1654
+    # runAsUser: 1654
+    # runAsNonRoot: true
+    # readOnlyRootFilesystem: true
+
+  volumeMounts:
+    []
+    # - name: foo
+    #   mountPath: "/etc/foo"
+    #   readOnly: true
+
+  serviceMonitor:
+    # -- Enables the deployment of a serviceMonitor resource
+    enabled: false
+
+  grafanaDashboard:
+    #
+    enabled: false
+
+# Additional volumes on the output Deployment definition.
+volumes: []
+  # - name: foo
+  #   secret:
+  #     secretName: mysecret
+  #     optional: false
+
+# Additional volumeMounts on the output Deployment definition.
+volumeMounts: []
+  # - name: foo
+  #   mountPath: "/etc/foo"
+  #   readOnly: true
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
