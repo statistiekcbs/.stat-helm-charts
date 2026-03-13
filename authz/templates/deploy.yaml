@@ -135,7 +135,7 @@ spec:
           emptyDir: {}
         - name: config
           configMap:
-            name: {{ include "nsiws.fullname" . }}-config
+            name: {{ include "authz.fullname" . }}-config
         - emptyDir: {}
           name: config-tmp
         {{- with .Values.volumes }}
