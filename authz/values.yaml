@@ -60,9 +60,11 @@ ingress:
     # - secretName: chart-example-tls
     #   hosts:
     #     - chart-example.local
-
+  
+# -- Additional environment variables
 env:
-  autoLogToGoogle: false
+  - name: autoLogToGoogle
+    value: "false"
 
 auth:
   # -- Is openid authentication enabled
@@ -425,9 +427,6 @@ monitoring:
     - ProviderName: Microsoft.AspNetCore.Http.Connections
     - ProviderName: Microsoft-AspNetCore-Server-Kestrel
     - ProviderName: System.Net.Http
-
-  # -- Additional environment variables
-  env: []
 
   resources:
     {}

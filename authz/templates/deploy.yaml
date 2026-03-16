@@ -59,8 +59,13 @@ spec:
             {{- $addParams := join ";" (append .Values.database.additionalParams "" ) }}
             - name: "DotStatSuiteCoreCommonDbConnectionString"
               value: "Server=$(DBSERVER_COMMON);Database=$(DB_COMMON);User=$(USER);Password=$(USER_PASSWORD);{{ $addParams }}"
-            - name: "AutoLog2Google"
-              value: {{ .Values.env.autoLogToGoogle | quote }}
+            {{- toYaml .Values.env | nindent 12 }}
+            {{- if .Values.monitoring.enabled }}
+            - name: DOTNET_DiagnosticPorts
+              value: /diag/dotnet-monitor.sock
+            - name: DOTNET_EnableDiagnostics
+              value: '1'
+            {{- end }}
           command: [ "/bin/sh" ]
           args: [ "-c", "dotnet DotStatServices.AuthorizationManagement.dll" ]
           ports:
@@ -82,8 +87,14 @@ spec:
             {{- with .Values.volumeMounts }}
               {{- toYaml . | nindent 12 }}
             {{- end }}
+            - name: config
+              mountPath: /app/config
             - mountPath: /tmp
               name: tmp
+            {{- if .Values.monitoring.enabled }}
+            - mountPath: /diag
+              name: diagvol
+            {{- end }}
         {{- if .Values.monitoring.enabled }}
         - name: monitor
           image: "{{ .Values.monitoring.image.repository }}:{{ .Values.monitoring.image.tag }}"
@@ -124,8 +135,6 @@ spec:
               name: diagvol
             - mountPath: /app/config
               name: monitor-config
-            - name: config
-              mountPath: /app/config
             {{- with .Values.monitoring.volumeMounts }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
@@ -136,8 +145,6 @@ spec:
         - name: config
           configMap:
             name: {{ include "authz.fullname" . }}-config
-        - emptyDir: {}
-          name: config-tmp
         {{- with .Values.volumes }}
           {{- toYaml . | nindent 8 }}
         {{- end }}
