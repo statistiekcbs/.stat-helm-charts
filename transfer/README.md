@@ -1,6 +1,6 @@
 # transfer
 
-![Version: 3.0.0](https://img.shields.io/badge/Version-3.0.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 17.1.0](https://img.shields.io/badge/AppVersion-17.1.0-informational?style=flat-square)
+![Version: 3.1.0](https://img.shields.io/badge/Version-3.1.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 17.1.0](https://img.shields.io/badge/AppVersion-17.1.0-informational?style=flat-square)
 
 A Helm chart for the Dotstat transfer service.
 
@@ -173,6 +173,13 @@ Secrets as well as th use of probes form the HTTP endpoint
 | image.repository | string | `"siscc/dotstatsuite-core-transfer"` |  |
 | image.tag | string | `""` | Overrides the image tag whose default is the chart appVersion. |
 | imagePullSecrets | list | `[]` |  |
+| ingress.annotations | object | `{}` |  |
+| ingress.className | string | `""` |  |
+| ingress.enabled | bool | `false` |  |
+| ingress.hosts[0].host | string | `"chart-example.local"` |  |
+| ingress.hosts[0].paths[0].path | string | `"/"` |  |
+| ingress.hosts[0].paths[0].pathType | string | `"ImplementationSpecific"` |  |
+| ingress.tls | list | `[]` |  |
 | inputVolume.mountPath | string | `"/input"` | Mount path inside the transfer container |
 | inputVolume.persistentVolume.annotations | object | `{}` |  |
 | inputVolume.persistentVolume.capacity | string | `"5Gi"` | Capacity of the generated volume |

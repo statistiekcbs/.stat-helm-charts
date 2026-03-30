@@ -2,16 +2,16 @@
 
 ![Version: 1.0.7](https://img.shields.io/badge/Version-1.0.7-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v11.0.0](https://img.shields.io/badge/AppVersion-v11.0.0-informational?style=flat-square)
 
-A Helm chart for the .Stat Auth Management Service. Refer to the docs in the source code for more information.
+A Helm chart for the Dotstat authorization management service.
 
-This Chart deploys the Authorisation Management Service pod and a Database init job.
+This chart includes the authorization management service application and supports external
+Secrets as well as the use of probes form the HTTP endpoint
 
 **Homepage:** <https://github.com/statistiekcbs/.stat-helm-charts>
 
 ## Source Code
 
 * <https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-auth-management>
-
 
 ## Values
 
@@ -20,14 +20,14 @@ This Chart deploys the Authorisation Management Service pod and a Database init 
 | affinity | object | `{}` |  |
 | auth.allowAnonymous | bool | `true` |  |
 | auth.audience | string | `"openid"` |  |
-| auth.authority | string | `""` | Authority url of token issuer |
-| auth.authorizationUrl | string | `""` | Authorization url (used in swagger UI interface) |
-| auth.claimsMapping.email | string | `""` | Key/value mapping of a key used in the C# code to JWT token claim. |
-| auth.claimsMapping.groups | string | `""` | Key/value mapping of a key used in the C# code to JWT token claim. |
-| auth.clientId | string | `""` | Client/application Id |
+| auth.authority | string | `""` |  |
+| auth.authorizationUrl | string | `""` |  |
+| auth.claimsMapping.email | string | `""` |  |
+| auth.claimsMapping.groups | string | `""` |  |
+| auth.clientId | string | `""` |  |
 | auth.enabled | bool | `true` | Is openid authentication enabled |
-| auth.requireHttps | bool | `false` | Is HTTPS connection to OpenId authority server required |
-| auth.scopes | list | `[]` | Requested openId scopes (used as parameters for authorization url) |
+| auth.requireHttps | bool | `false` |  |
+| auth.scopes | list | `[]` |  |
 | auth.showPii | bool | `true` |  |
 | auth.validateIssuer | bool | `false` |  |
 | containerPort | int | `8080` |  |
@@ -52,7 +52,7 @@ This Chart deploys the Authorisation Management Service pod and a Database init 
 | dbInit.common.securityContext | object | `{}` |  |
 | dbInit.common.timezone | string | `""` | Optional. When provided, uses the given value (name of the time zone) instead of trying to determine it in the related sql script(s). Should be used in cases when the stored procedure [MASTER].[dbo.xp_regread] cannot be executed. |
 | dbInit.common.volumeMounts | list | `[]` |  |
-| env.autoLogToGoogle | bool | `false` |  |
+| env | list | `[{"name":"autoLogToGoogle","value":"false"}]` | Additional environment variables |
 | fullnameOverride | string | `""` |  |
 | httpRoute | object | `{"additionalRules":[],"annotations":{},"enabled":false,"hostnames":[],"parentRefs":[],"serviceBackendFilters":[],"serviceBackendMatches":[{"path":{"type":"PathPrefix","value":"/"}}]}` | Expose the service via gateway-api HTTPRoute Requires Gateway API resources and suitable controller installed within the cluster (see: https://gateway-api.sigs.k8s.io/guides/) |
 | httpRoute.additionalRules | list | `[]` | Defines addional rules |
@@ -82,7 +82,6 @@ This Chart deploys the Authorisation Management Service pod and a Database init 
 | monitoring.collectionCount | int | `3` | The collectionCount is the amount of collections exposed at the metrics endpoint |
 | monitoring.collectionInterval | int | `5` | The collectionInterval is the amount of seconds between 2 collection events |
 | monitoring.enabled | bool | `false` | Enable monitoring by adding a dotnet monitoring side-car |
-| monitoring.env | list | `[]` | Additional environment variables |
 | monitoring.grafanaDashboard.enabled | bool | `false` |  |
 | monitoring.image | object | `{"pullPolicy":"IfNotPresent","repository":"mcr.microsoft.com/dotnet/monitor","tag":"8"}` | Monitoring is build for the dotnet-monitor container from Microsoft |
 | monitoring.image.tag | string | `"8"` | Overrides the image tag whose default is the chart appVersion. |

@@ -8,6 +8,43 @@ This chart includes the ability to deploy the NSIWS application, the DBup
 applications for data and structure databases and supports generating External
 Secrets and monitoring probes for the application itself and the databases.
 
+## Usage
+
+Before deployment the chart the data and structure databases should be
+deployed. References to these databases and their credentials should be set in
+the `databases` values. Credentials can be passed from existing secrets or
+using [external secrets](https://external-secrets.io/).
+
+Authentication parameters are set under `application.openIdMiddelware`.
+
+Authorisation is done using webapi
+(`application.appSettings.authorization.method`) and the URL is set with
+`application.appSettings.authorization.baseUrl`.
+
+The dataspace ID is set with
+`application.appSettings.mappingStore.Id.Default`.
+
+### DB initialisation
+
+This chart can create jobs to run the [DBup scripts](https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-data-access/-/blob/develop/docs/dotstatsuite-dbup-docker-readme.md)
+to initialise the databases configured in `databases`. To enable this, set the
+different `dbInit.*.enabled` values to `true`.
+
+Note that the DBup job for the structure DB includes the maapi init script
+found in the default `siscc/sdmxri-nsi-maapi` container image. This script can
+be customized slightly using the values under
+`dbInit.structure.maapiContainer`. **Importantly, this script will, by default,
+not be run in the main deployment.**
+
+### Monitoring
+
+Monitoring using  side-car running the `mcr.microsoft.com/dotnet/monitor`
+container image can be enabled by setting `monitoring.enabled` to `true`.
+
+You can also spawm a service monitor by setting
+`monitoring.serviceMonitor.enabled` to `true`. This will let your prometheus
+deployment know where and how to scrape the side-car for metrics.
+
 **Homepage:** <https://github.com/statistiekcbs/.stat-helm-charts>
 
 ## Source Code
