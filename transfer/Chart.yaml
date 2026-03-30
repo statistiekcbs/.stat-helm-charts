@@ -5,7 +5,45 @@ description: |
   A Helm chart for the Dotstat transfer service.
 
   This chart includes the transfer service application and supports external
-  Secrets as well as th use of probes form the HTTP endpoint
+  Secrets as well as the use of probes form the HTTP endpoint.
+
+  ## Usage
+
+  Before deploying the chart, make sure all databases are provisioned and the
+  DBup script are run against them. This can be done using the nsiws chart.
+  Credentials can be passed from existing secrets or using
+  [external secrets](https://external-secrets.io/).
+
+  Spaces to transfer between, their database config and the credentials to access
+  them can all be configured under `application.spacesInternal`.
+
+  The config and credentials for the common/authorization DB can be configured
+  under `application.commonDb`.
+
+  Authentication parameters are set under `application.auth`.
+
+  A volume to import large files can be provisioned using the configuration
+  under `inputVolume`. Ideally this volume would be provisioned using an 
+  [SMB provider](https://github.com/kubernetes-csi/csi-driver-smb) or similar
+  to allow users to upload their files using standard Windows tools.
+
+  ### Archival jobs
+
+  This chart can provide archival cronjobs to manage the input volume. There are
+  two configurable jobs, one to move files from the input volume to an archive
+  volume and one to delete files from the archive volume. These jobs can be
+  configured using `archiveJob` and `archivePurgeJob` respectively.
+
+  The archive volume can be configured with the values under `inputVolume`.
+
+  ### Monitoring
+
+  Monitoring using  side-car running the `mcr.microsoft.com/dotnet/monitor`
+  container image can be enabled by setting `monitoring.enabled` to `true`.
+
+  You can also spawm a service monitor by setting
+  `monitoring.serviceMonitor.enabled` to `true`. This will let your prometheus
+  deployment know where and how to scrape the side-car for metrics.
 type: application
 home: https://github.com/statistiekcbs/.stat-helm-charts
 sources:
