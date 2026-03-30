@@ -145,6 +145,13 @@ spec:
         - name: config
           configMap:
             name: {{ include "authz.fullname" . }}-config
+        {{- if .Values.monitoring.enabled }}
+        - emptyDir: {}
+          name: diagvol
+        - configMap:
+            name: {{ include "authz.fullname" . }}-monitor
+          name: monitor-config
+        {{- end }}
         {{- with .Values.volumes }}
           {{- toYaml . | nindent 8 }}
         {{- end }}

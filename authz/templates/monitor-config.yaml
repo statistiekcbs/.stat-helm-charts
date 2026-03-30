@@ -1,0 +1,15 @@
+{{- if .Values.monitoring.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "authz.fullname" . }}-monitor
+  labels:
+    {{- include "authz.labels" . | nindent 4 }}
+data:
+  dotnet-monitor.json: |
+    {
+      "Metrics": {
+        "Providers": {{ .Values.monitoring.providers | toPrettyJson | indent 8 | trim }}
+      }
+    }
+{{- end }}
