@@ -25,14 +25,14 @@ spec:
             - --force
             - --connectionString 
             {{- $addParams := join ";" (append .Values.dbInit.common.additionalParams "") }}
-            {{- $addUserParams := join ";" .Values.userSecrets.admin.additionalParams }}
+            {{- $addUserParams := join ";" .Values.database.userSecrets.admin.additionalParams }}
             - "Server={{ .Values.database.serverHostname }},{{ .Values.database.serverPort }};Database={{ .Values.database.dbName }};User=$(ADMIN_USER);Password=$(ADMIN_PASSWORD);{{ $addParams }}{{ $addUserParams }}"
             - --commonDb
             - --loginName
             - $(WRITER_USER)
             - --loginPwd
             - $(WRITER_PASSWORD)
-            {{- if .Values.userSecrets.reader }}
+            {{- if .Values.database.userSecrets.reader }}
             - --ROloginName
             - $(READ_ONLY_USER)
             - --ROloginPwd
@@ -64,7 +64,7 @@ spec:
               value: "{{ .Values.database.serverHostname }},{{ .Values.database.serverPort }}"
             - name: DB_COMMON
               value: {{ .Values.database.dbName }}
-            {{- with .Values.userSecrets.admin }}
+            {{- with .Values.database.userSecrets.admin }}
             - name: ADMIN_USER
               valueFrom:
                 secretKeyRef:
@@ -76,7 +76,7 @@ spec:
                   key: {{ .password.key }}
                   name: {{ include "authz.dbSecretName" . | default (include "authz.dbGeneratedSecretName" (dict "root" $ "type" "data" "key" "admin" ) ) }}
             {{- end }}
-            {{- with .Values.userSecrets.writer }}
+            {{- with .Values.database.userSecrets.writer }}
             - name: WRITER_USER
               valueFrom:
                 secretKeyRef:
@@ -88,7 +88,7 @@ spec:
                   key: {{ .password.key }}
                   name: {{ include "authz.dbSecretName" . | default (include "authz.dbGeneratedSecretName" (dict "root" $ "type" "data" "key" "writer" ) ) }}
             {{- end }}
-            {{- with .Values.userSecrets.reader }}
+            {{- with .Values.database.userSecrets.reader }}
             - name: READ_ONLY_USER
               valueFrom:
                 secretKeyRef:

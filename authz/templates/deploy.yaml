@@ -39,12 +39,12 @@ spec:
           {{- end }}
           env:
             - name: ASPNETCORE_URLS
-              value: http://+:{{ .Values.containerPort }}
+              value: http://+:{{ .Values.service.port }}
             - name: DBSERVER_COMMON
               value: "{{ .Values.database.serverHostname }},{{ .Values.database.serverPort }}"
             - name: DB_COMMON
               value: {{ .Values.database.dbName }}
-            {{- with .Values.userSecrets.writer }}
+            {{- with .Values.database.userSecrets.writer }}
             - name: USER
               valueFrom:
                 secretKeyRef:
@@ -70,7 +70,7 @@ spec:
           args: [ "-c", "dotnet DotStatServices.AuthorizationManagement.dll" ]
           ports:
             - name: http
-              containerPort: {{ .Values.containerPort }}
+              containerPort: {{ .Values.service.port }}
           {{- with .Values.startupProbe }}
           startupProbe:
             {{- toYaml . | nindent 12 }}
