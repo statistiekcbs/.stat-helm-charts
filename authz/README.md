@@ -2,7 +2,7 @@
 
 ![Version: 2.0.0](https://img.shields.io/badge/Version-2.0.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v11.0.0](https://img.shields.io/badge/AppVersion-v11.0.0-informational?style=flat-square)
 
-A Helm chart for the Dotstat authorization management service.
+A Helm chart for the .Stat authorization management service.
 
 This chart includes the authorization management service application and
 supports external Secrets as well as the use of probes form the HTTP

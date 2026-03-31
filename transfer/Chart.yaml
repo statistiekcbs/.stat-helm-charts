@@ -2,7 +2,7 @@ apiVersion: v2
 name: transfer
 version: 3.1.0
 description: |
-  A Helm chart for the Dotstat transfer service.
+  A Helm chart for the .Stat transfer service.
 
   This chart includes the transfer service application and supports external
   Secrets as well as the use of probes form the HTTP endpoint.
