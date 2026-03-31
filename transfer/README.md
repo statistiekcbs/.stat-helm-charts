@@ -2,7 +2,7 @@
 
 ![Version: 3.1.0](https://img.shields.io/badge/Version-3.1.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 17.1.0](https://img.shields.io/badge/AppVersion-17.1.0-informational?style=flat-square)
 
-A Helm chart for the Dotstat transfer service.
+A Helm chart for the .Stat transfer service.
 
 This chart includes the transfer service application and supports external
 Secrets as well as the use of probes form the HTTP endpoint.
