@@ -4,8 +4,33 @@ version: 1.0.7
 description: |
   A Helm chart for the Dotstat authorization management service.
 
-  This chart includes the authorization management service application and supports external
-  Secrets as well as the use of probes form the HTTP endpoint
+  This chart includes the authorization management service application and
+  supports external Secrets as well as the use of probes form the HTTP
+  endpoint.
+
+  ## Usage
+
+  Before deployment the chart the common/authorization database should be
+  deployed. Reference to this database and its credentials should be set under
+  the `database` value. Credentials can be passed from existing secrets or
+  using [external secrets](https://external-secrets.io/).
+
+  Authentication parameters are set under `auth`.
+
+  ### DB initialisation
+
+  This chart can create a job to run the [DBup scripts](https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-data-access/-/blob/develop/docs/dotstatsuite-dbup-docker-readme.md)
+  to initialise the database configured in `database`. To enable this, set
+  `dbInit.common.enabled` to `true`.
+
+  ### Monitoring
+
+  Monitoring using  side-car running the `mcr.microsoft.com/dotnet/monitor`
+  container image can be enabled by setting `monitoring.enabled` to `true`.
+
+  You can also spawm a service monitor by setting
+  `monitoring.serviceMonitor.enabled` to `true`. This will let your prometheus
+  deployment know where and how to scrape the side-car for metrics.
 type: application
 home: https://github.com/statistiekcbs/.stat-helm-charts
 sources:
