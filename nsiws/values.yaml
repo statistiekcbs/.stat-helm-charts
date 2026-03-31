@@ -822,11 +822,10 @@ monitoring:
   # -- Enable monitoring by adding a dotnet monitoring side-car
   enabled: false
 
-  # -- Monitoring is build for the dotnet-monitor container from Microsoft
   image:
+    # -- Monitoring is build for the dotnet-monitor container from Microsoft
     repository: mcr.microsoft.com/dotnet/monitor
     pullPolicy: IfNotPresent
-    # -- Overrides the image tag whose default is the chart appVersion.
     tag: "8"
 
   # -- Port number to listen to for metrics requests
