@@ -1,6 +1,6 @@
 # authz
 
-![Version: 1.0.7](https://img.shields.io/badge/Version-1.0.7-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v11.0.0](https://img.shields.io/badge/AppVersion-v11.0.0-informational?style=flat-square)
+![Version: 2.0.0](https://img.shields.io/badge/Version-2.0.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v11.0.0](https://img.shields.io/badge/AppVersion-v11.0.0-informational?style=flat-square)
 
 A Helm chart for the Dotstat authorization management service.
 
@@ -43,23 +43,49 @@ deployment know where and how to scrape the side-car for metrics.
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | affinity | object | `{}` |  |
-| auth.allowAnonymous | bool | `true` |  |
-| auth.audience | string | `"openid"` |  |
-| auth.authority | string | `""` |  |
-| auth.authorizationUrl | string | `""` |  |
-| auth.claimsMapping.email | string | `""` |  |
-| auth.claimsMapping.groups | string | `""` |  |
-| auth.clientId | string | `""` |  |
-| auth.enabled | bool | `true` | Is openid authentication enabled |
-| auth.requireHttps | bool | `false` |  |
-| auth.scopes | list | `[]` |  |
-| auth.showPii | bool | `true` |  |
-| auth.validateIssuer | bool | `false` |  |
-| containerPort | int | `8080` |  |
+| auth.allowAnonymous | bool | `false` | Is anonymous access allowed (request without JWT token) |
+| auth.audience | string | `"clientId"` | Expected `aud` claim during token validation, if not set equals to `clientId` |
+| auth.authority | string | `""` | Authority url of token issuer |
+| auth.authorizationUrl | string | `""` | Authorization url (used in swagger UI interface) |
+| auth.claimsMapping | object | `{"email":"email","groups":"groups"}` | Key/value mapping of a key used in the C# code to JWT token claim. |
+| auth.clientId | string | `""` | Client/application Id |
+| auth.enabled | bool | `false` | Is openid authentication enabled |
+| auth.requireHttps | bool | `false` | Is HTTPS connection to OpenId authority server required |
+| auth.scopes | list | `["openid","profile","email"]` | Requested openId scopes (used as parameters for authorization url) |
+| auth.showPii | bool | `false` | If set to TRUE outputs addition debug information in case of invalid token |
+| auth.tokenUrl | string | `""` | Token url (used in swagger UI interface), optional, if not defined will be constructed based on authorizationUrl |
+| auth.validateIssuer | bool | `false` | Is iss (issuer) claim in JTW token should match configured authority |
 | database.additionalParams | list | `[]` |  |
 | database.dbName | string | `""` | Database name |
 | database.serverHostname | string | `""` | Server URL |
 | database.serverPort | int | `1433` |  |
+| database.userSecrets.admin.additionalParams | list | `[]` | Additional parameters for admin connection string |
+| database.userSecrets.admin.annotations | object | `{}` |  |
+| database.userSecrets.admin.isExternal | bool | `false` | Set to true to use an external When using an external secret , the secret name is generated |
+| database.userSecrets.admin.name | string | `""` | Secret name for username and password |
+| database.userSecrets.admin.password.key | string | `""` | The password secret key |
+| database.userSecrets.admin.password.remoteRef | object | `{"key":""}` | When using an external secret, remoteRef.key is required If remoteRef.property is not set, password.key is used |
+| database.userSecrets.admin.secretStoreRef | object | `{"name":""}` | When using an external secret, secretStoreRef.name is required |
+| database.userSecrets.admin.username.key | string | `""` | The username secret key |
+| database.userSecrets.admin.username.remoteRef | object | `{"key":""}` | When using an external secret, remoteRef.key is required If remoteRef.property is not set, username.key is used |
+| database.userSecrets.reader.additionalParams | list | `[]` | Additional parameters for writer connection string |
+| database.userSecrets.reader.annotations | object | `{}` |  |
+| database.userSecrets.reader.isExternal | bool | `false` | Set to true to use an external When using an external secret , the secret name is generated |
+| database.userSecrets.reader.name | string | `""` | Secret name for username and password |
+| database.userSecrets.reader.password.key | string | `""` | The password secret key |
+| database.userSecrets.reader.password.remoteRef | object | `{"key":""}` | When using an external secret, remoteRef.key is required If remoteRef.property is not set, password.key is used |
+| database.userSecrets.reader.secretStoreRef | object | `{"name":""}` | When using an external secret, secretStoreRef.name is required |
+| database.userSecrets.reader.username.key | string | `""` | The username secret key |
+| database.userSecrets.reader.username.remoteRef | object | `{"key":""}` | When using an external secret, remoteRef.key is required If remoteRef.property is not set, username.key is used |
+| database.userSecrets.writer.additionalParams | list | `[]` | Additional parameters for writer connection string |
+| database.userSecrets.writer.annotations | object | `{}` |  |
+| database.userSecrets.writer.isExternal | bool | `false` | Set to true to use an external When using an external secret , the secret name is generated |
+| database.userSecrets.writer.name | string | `""` | Secret name for username and password |
+| database.userSecrets.writer.password.key | string | `""` | The password secret key |
+| database.userSecrets.writer.password.remoteRef | object | `{"key":""}` | When using an external secret, remoteRef.key is required If remoteRef.property is not set, password.key is used |
+| database.userSecrets.writer.secretStoreRef | object | `{"name":""}` | When using an external secret, secretStoreRef.name is required |
+| database.userSecrets.writer.username.key | string | `""` | The username secret key |
+| database.userSecrets.writer.username.remoteRef | object | `{"key":""}` | When using an external secret, remoteRef.key is required If remoteRef.property is not set, username.key is used |
 | dbInit.common.additionalParams | list | `[]` |  |
 | dbInit.common.alterPasswords | bool | `false` | Changes the passwords of existing loginName and ROloginName logins in database |
 | dbInit.common.annotations | object | `{}` |  |
@@ -79,7 +105,6 @@ deployment know where and how to scrape the side-car for metrics.
 | dbInit.common.volumeMounts | list | `[]` |  |
 | env | list | `[{"name":"autoLogToGoogle","value":"false"}]` | Additional environment variables |
 | fullnameOverride | string | `""` |  |
-| httpRoute | object | `{"additionalRules":[],"annotations":{},"enabled":false,"hostnames":[],"parentRefs":[],"serviceBackendFilters":[],"serviceBackendMatches":[{"path":{"type":"PathPrefix","value":"/"}}]}` | Expose the service via gateway-api HTTPRoute Requires Gateway API resources and suitable controller installed within the cluster (see: https://gateway-api.sigs.k8s.io/guides/) |
 | httpRoute.additionalRules | list | `[]` | Defines addional rules |
 | httpRoute.annotations | object | `{}` | Add annotations to the route |
 | httpRoute.enabled | bool | `false` | enables the creation of an HTTPRoute |
@@ -108,8 +133,9 @@ deployment know where and how to scrape the side-car for metrics.
 | monitoring.collectionInterval | int | `5` | The collectionInterval is the amount of seconds between 2 collection events |
 | monitoring.enabled | bool | `false` | Enable monitoring by adding a dotnet monitoring side-car |
 | monitoring.grafanaDashboard.enabled | bool | `false` |  |
-| monitoring.image | object | `{"pullPolicy":"IfNotPresent","repository":"mcr.microsoft.com/dotnet/monitor","tag":"8"}` | Monitoring is build for the dotnet-monitor container from Microsoft |
-| monitoring.image.tag | string | `"8"` | Overrides the image tag whose default is the chart appVersion. |
+| monitoring.image.pullPolicy | string | `"IfNotPresent"` |  |
+| monitoring.image.repository | string | `"mcr.microsoft.com/dotnet/monitor"` | Monitoring is build for the dotnet-monitor container from Microsoft |
+| monitoring.image.tag | string | `"8"` |  |
 | monitoring.port | int | `52325` | Port number to listen to for metrics requests |
 | monitoring.providers | list | `[{"ProviderName":"System.Runtime"},{"ProviderName":"Microsoft.AspNetCore.Hosting"},{"ProviderName":"Microsoft.AspNetCore.Http.Connections"},{"ProviderName":"Microsoft-AspNetCore-Server-Kestrel"},{"ProviderName":"System.Net.Http"}]` | Additional metrics providers and counter names https://github.com/dotnet/dotnet-monitor/blob/main/documentation/configuration/metrics-configuration.md#custom-metrics |
 | monitoring.resources | object | `{}` |  |
@@ -150,8 +176,8 @@ deployment know where and how to scrape the side-car for metrics.
 | readinessProbe.periodSeconds | int | `10` |  |
 | readinessProbe.successThreshold | int | `1` |  |
 | readinessProbe.timeoutSeconds | int | `3` |  |
-| replicaCount | int | `2` |  |
-| resources | object | `{}` |  |
+| replicaCount | int | `1` |  |
+| resources | object | `{}` | Resource requests and limits |
 | revisionHistoryLimit | int | `10` |  |
 | securityContext | object | `{}` |  |
 | service.annotations | object | `{}` |  |
@@ -169,35 +195,8 @@ deployment know where and how to scrape the side-car for metrics.
 | topologySpreadConstraints[0].maxSkew | int | `1` |  |
 | topologySpreadConstraints[0].topologyKey | string | `"kubernetes.io/hostname"` |  |
 | topologySpreadConstraints[0].whenUnsatisfiable | string | `"DoNotSchedule"` |  |
-| userSecrets.admin.additionalParams | list | `[]` | Additional parameters for admin connection string |
-| userSecrets.admin.annotations | object | `{}` |  |
-| userSecrets.admin.isExternal | bool | `false` | Set to true to use an external When using an external secret , the secret name is generated |
-| userSecrets.admin.name | string | `""` | Secret name for username and password |
-| userSecrets.admin.password.key | string | `""` | The password secret key |
-| userSecrets.admin.password.remoteRef | object | `{"key":""}` | When using an external secret, remoteRef.key is required If remoteRef.property is not set, password.key is used |
-| userSecrets.admin.secretStoreRef | object | `{"name":""}` | When using an external secret, secretStoreRef.name is required |
-| userSecrets.admin.username.key | string | `""` | The username secret key |
-| userSecrets.admin.username.remoteRef | object | `{"key":""}` | When using an external secret, remoteRef.key is required If remoteRef.property is not set, username.key is used |
-| userSecrets.reader.additionalParams | list | `[]` | Additional parameters for writer connection string |
-| userSecrets.reader.annotations | object | `{}` |  |
-| userSecrets.reader.isExternal | bool | `false` | Set to true to use an external When using an external secret , the secret name is generated |
-| userSecrets.reader.name | string | `""` | Secret name for username and password |
-| userSecrets.reader.password.key | string | `""` | The password secret key |
-| userSecrets.reader.password.remoteRef | object | `{"key":""}` | When using an external secret, remoteRef.key is required If remoteRef.property is not set, password.key is used |
-| userSecrets.reader.secretStoreRef | object | `{"name":""}` | When using an external secret, secretStoreRef.name is required |
-| userSecrets.reader.username.key | string | `""` | The username secret key |
-| userSecrets.reader.username.remoteRef | object | `{"key":""}` | When using an external secret, remoteRef.key is required If remoteRef.property is not set, username.key is used |
-| userSecrets.writer.additionalParams | list | `[]` | Additional parameters for writer connection string |
-| userSecrets.writer.annotations | object | `{}` |  |
-| userSecrets.writer.isExternal | bool | `false` | Set to true to use an external When using an external secret , the secret name is generated |
-| userSecrets.writer.name | string | `""` | Secret name for username and password |
-| userSecrets.writer.password.key | string | `""` | The password secret key |
-| userSecrets.writer.password.remoteRef | object | `{"key":""}` | When using an external secret, remoteRef.key is required If remoteRef.property is not set, password.key is used |
-| userSecrets.writer.secretStoreRef | object | `{"name":""}` | When using an external secret, secretStoreRef.name is required |
-| userSecrets.writer.username.key | string | `""` | The username secret key |
-| userSecrets.writer.username.remoteRef | object | `{"key":""}` | When using an external secret, remoteRef.key is required If remoteRef.property is not set, username.key is used |
-| volumeMounts | list | `[]` |  |
-| volumes | list | `[]` |  |
+| volumeMounts | list | `[]` | Additional volumeMounts on the output Deployment definition. |
+| volumes | list | `[]` | Additional volumes on the output Deployment definition. |
 
 ----------------------------------------------
 Autogenerated from chart metadata using [helm-docs v1.14.2](https://github.com/norwoodj/helm-docs/releases/v1.14.2)
