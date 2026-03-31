@@ -316,8 +316,9 @@ deployment know where and how to scrape the side-car for metrics.
 | monitoring.enabled | bool | `false` | Enable monitoring by adding a dotnet monitoring side-car |
 | monitoring.env | list | `[]` | Additional environment variables |
 | monitoring.grafanaDashboard.enabled | bool | `false` |  |
-| monitoring.image | object | `{"pullPolicy":"IfNotPresent","repository":"mcr.microsoft.com/dotnet/monitor","tag":"8"}` | Monitoring is build for the dotnet-monitor container from Microsoft |
-| monitoring.image.tag | string | `"8"` | Overrides the image tag whose default is the chart appVersion. |
+| monitoring.image.pullPolicy | string | `"IfNotPresent"` |  |
+| monitoring.image.repository | string | `"mcr.microsoft.com/dotnet/monitor"` | Monitoring is build for the dotnet-monitor container from Microsoft |
+| monitoring.image.tag | string | `"8"` |  |
 | monitoring.port | int | `52325` | Port number to listen to for metrics requests |
 | monitoring.providers | list | `[{"ProviderName":"System.Runtime"},{"ProviderName":"Microsoft.AspNetCore.Hosting"},{"ProviderName":"Microsoft.AspNetCore.Http.Connections"},{"ProviderName":"Microsoft-AspNetCore-Server-Kestrel"},{"ProviderName":"System.Net.Http"}]` | Additional metrics providers and counter names https://github.com/dotnet/dotnet-monitor/blob/main/documentation/configuration/metrics-configuration.md#custom-metrics |
 | monitoring.resources | object | `{}` |  |
