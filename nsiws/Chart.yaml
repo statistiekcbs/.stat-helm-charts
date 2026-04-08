@@ -1,6 +1,6 @@
 apiVersion: v2
 name: nsiws
-version: 9.0.0
+version: 10.0.0
 description: |
   A Helm chart for the .Stat NSI web service.
 
@@ -50,5 +50,5 @@ sources:
   - https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-sdmxri-nsi-ws/
   - https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-data-access
 icon: https://raw.githubusercontent.com/statistiekcbs/.stat-helm-charts/refs/heads/main/nsiws/icon.png
-appVersion: "10.9.0"
+appVersion: "10.11.2"
 # OECD release: jackfruit
