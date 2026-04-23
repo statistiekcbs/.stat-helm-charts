@@ -151,6 +151,7 @@ data:
             <!-- Please note that System.Data.OracleClient is obsolete and no longer maintained by Microsoft. -->
             <add provider="System.Data.OracleClient" parameterMarkerFormat=":{0}" dateCast="DATE" reservedKeywordToStringFormat="&quot;{0}&quot;"/>
             <add provider="MySqlConnector" parameterMarkerFormat="@{0}" dateCast="TIMESTAMP" reservedKeywordToStringFormat="`{0}`"/>
+            <add provider="Npgsql" parameterMarkerFormat="@{0}" dateCast="DATE" reservedKeywordToStringFormat ="&quot;{0}&quot;"/>
             <!-- DDB only providers -->
             <add provider="Org.Estat.PcAxis.PcAxisProvider" parameterMarkerFormat="@{0}"/>
             <!-- ODBC options depend on the ODBC driver used. -->
@@ -167,6 +168,7 @@ data:
             <add name="PCAxis" provider="org.estat.PcAxis.PcAxisProvider" factoryClass="Org.Estat.PcAxis.PcAxisProvider" dllName="PcAxis"/>
             <add name="MySQL" provider="MySqlConnector" factoryClass="MySqlConnector.MySqlConnectorFactory" dllName="MySqlConnector" />
             <add name="Odbc" provider="System.Data.Odbc" factoryClass="System.Data.Odbc.OdbcFactory" dllName="System.Data.Odbc"/>
+            <add name="PostgreSQL" provider="Npgsql" factoryClass="Npgsql.NpgsqlFactory" dllName="Npgsql"/>
           </ddbSettings>
           <Dataflow ignoreProductionFlagForData={{ .Values.application.ignoreProductionFlagForData | quote }} ignoreProductionFlagForStructure={{ .Values.application.ignoreProductionFlagForStructure | quote }} />
         </mapping.store>
